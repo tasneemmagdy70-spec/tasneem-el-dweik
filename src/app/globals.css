@@ -131,14 +131,6 @@ body {
   border-radius: 999px;
 }
 
-/* touch: the browser's own, momentum-friendly snap onto each featured project in The Core.
-   Proximity, so it only catches you when you stop near a project — never a hard lock. */
-@media (pointer: coarse) {
-  html {
-    scroll-snap-type: y proximity;
-  }
-}
-
 /* particles drifting up through the lower sections (DeepAmbient) */
 @keyframes deep-rise {
   from {

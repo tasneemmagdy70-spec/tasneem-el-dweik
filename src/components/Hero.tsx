@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { animate, AnimatePresence, motion, useMotionValue, useMotionValueEvent, useScroll, useTransform, type MotionValue, type Variants } from "motion/react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { animate, AnimatePresence, motion, useAnimationControls, useMotionValue, useMotionValueEvent, useScroll, useTransform, type MotionValue, type Variants } from "motion/react";
 import MagneticButton from "./MagneticButton";
 import Nucleus from "./Nucleus";
 import XRay from "./XRay";
@@ -10,7 +10,8 @@ import { DrawPath } from "./DrawStroke";
 import { LOAD_MS, STAGE, useIntro, useIsDesktop } from "./useIntro";
 import Loader from "./Loader";
 import { FEATURED } from "@/lib/projects";
-import { RAW_STOPS, goToLayer, projectT, rawForCoreT, scrollToRaw } from "@/lib/depth";
+import { LAYERS, RAW_STOPS, goToLayer } from "@/lib/depth";
+import { useLayerPager } from "./useLayerPager";
 import { useTheme } from "@/lib/theme";
 import ProjectOrbit, { coreStage } from "./ProjectOrbit";
 import { CV_URL } from "@/lib/contact";
@@ -23,9 +24,11 @@ import { CV_URL } from "@/lib/contact";
    ─────────────────────────────────────────────────────────────── */
 
 const ease = [0.16, 1, 0.3, 1] as const;
-/** Where each layer starts in the physical scroll (the core gets the whole second half). */
-// The first three layers keep ~85vh of scroll each; The Core gets ~90vh per project so a
-// trackpad flick can't race past the work (and the scroll snaps to the nearest project).
+// Each layer gets an equal quarter of the scroll, and one gesture moves exactly one layer
+// (see useLayerPager). The projects in The Core turn sideways — they never use the scroll.
+
+/** One line per layer, for the "next" peek at the bottom of the screen. */
+const PEEK: Record<number, string> = { 1: "Every surface hides a reason.", 2: "Layers, not guesses.", 3: "Work in orbit." };
 
 const CHAPTERS = [
   {
@@ -132,7 +135,6 @@ export default function Hero() {
   const depthText = useTransform(p, (v) => `−${String(Math.round(v * 360)).padStart(3, "0")}m`);
   const surfaceLight = useTransform(p, [0, 0.75], [1, 0.12]);
   const abyss = useTransform(p, [0, 1], [0, 0.75]);
-  const meterFill = useTransform(p, [0, 1], [0, 1]);
 
   /* ── mobile choreography (all scroll-linked, so it's reversible) ──
      One focal point per moment:
@@ -143,7 +145,6 @@ export default function Hero() {
        3. deeper layers — the portrait has done its job and dissolves; the atom
                           becomes a blurred backdrop and the CONTENT leads */
   const mobile = desktop === false;
-  const sp = useTransform(p, [0, 0.25], [0, 1]);
   const [vw, vh] = useViewport();
   // nucleus box — matches the CSS width below. (~13% smaller than it was, so the first page keeps
   // room under the portrait for the headline and both buttons)
@@ -166,13 +167,8 @@ export default function Hero() {
     lift: 0.5 * vh - (TOP + 0.567 * B * S_DEEP), // deeper layers: the blurred atom sits dead centre
     coreLift: coreStage(vw, vh, true).fy - (TOP + 0.567 * B * S_CORE), // the core: the atom sits right behind the stage
   };
-  // the core: the orbit arrives, then turns project by project
-  const coreShow = useTransform(p, [0.75, 0.785], [0, 1]);
-  const coreT = useTransform(p, [0.785, 0.975], [0, 1]);
-  // deeper layers: each layer's own 0→1, so its content lights up item by item as you scroll
-  const t1 = useTransform(p, [0.25, 0.42], [0, 1]);
-  const t2 = useTransform(p, [0.5, 0.67], [0, 1]);
-  const t3 = useTransform(p, [0.75, 0.92], [0, 1]);
+  // the core: the orbit arrives (the projects themselves turn sideways, not with the scroll)
+  const coreShow = useTransform(p, [0.75, 0.8], [0, 1]);
   const shift = useMotionValue(0);
   const drop = useMotionValue(0);
   const lift = useMotionValue(0);
@@ -211,37 +207,49 @@ export default function Hero() {
   // one source of truth for "where is layer i" (lib/depth) — the menu, the depth meter and
   // every "next" button land in exactly the same place
   const goTo = goToLayer;
-  const goToProject = (i: number) => scrollToRaw(rawForCoreT(projectT(i)));
 
-  // Snap: in The Core, once scrolling settles, glide to the nearest project so you
-  // always land on one — never stranded halfway between two.
-  // Mouse / trackpad only. On touch, a JS glide fights the finger's momentum (it fires in the
-  // pauses of a flick and drags the page back), so phones use the browser's own scroll-snap
-  // instead — see the snap points rendered inside the section below.
+  // The Core: which project is on stage. Sideways swipes, arrows and ←/→ turn it.
+  const [proj, setProj] = useState(0);
+  const chapterRef = useRef(chapter);
   useEffect(() => {
-    if (window.matchMedia("(pointer: coarse)").matches) return;
+    chapterRef.current = chapter;
+  }, [chapter]);
+  const turn = (dir: 1 | -1) => {
+    if (chapterRef.current !== 3) return false;
+    setProj((i) => Math.max(0, Math.min(FEATURED.length - 1, i + dir)));
+    return true;
+  };
+  // one gesture = one layer (phones also rest once with the first page lifted, when it needs it)
+  useLayerPager({ enabled: done, lift: mobile && geo.drop < -4, onSide: turn });
+
+  // First screen: if nothing has moved for a few seconds, the page lifts a little and settles
+  // back — the content itself shows that it scrolls. Twice at most, and never once you've moved.
+  const nudge = useAnimationControls();
+  useEffect(() => {
+    if (!done || reduce) return;
+    let n = 0;
     let timer = 0;
-    const onScroll = () => {
+    const arm = () => {
       clearTimeout(timer);
+      if (n >= 2 || window.scrollY > 4) return;
       timer = window.setTimeout(() => {
-        const v = p.get();
-        if (v < 0.785 || v > 0.972) return;
-        const n = FEATURED.length - 1;
-        const t = (v - 0.785) / 0.19;
-        const i = Math.max(0, Math.min(n, Math.round(t * n - 0.075)));
-        const el = section.current;
-        if (!el) return;
-        const target = el.offsetTop + rawForCoreT(projectT(i)) * (el.offsetHeight - window.innerHeight);
-        if (Math.abs(target - window.scrollY) > 6) window.scrollTo({ top: target, behavior: reduce ? "auto" : "smooth" });
-      }, 220); // long enough that a trackpad's momentum has really ended — never tug against a moving hand
+        if (window.scrollY > 4 || document.documentElement.style.overflow === "hidden") return;
+        n++;
+        void nudge.start({ y: [0, -34, 0, -14, 0], transition: { duration: 1.5, times: [0, 0.3, 0.6, 0.8, 1], ease: "easeInOut" } });
+        arm();
+      }, n === 0 ? 4000 : 9000);
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
+    const stop = () => {
+      n = 2;
+      clearTimeout(timer);
+    };
+    arm();
+    window.addEventListener("scroll", stop, { passive: true, once: true });
     return () => {
       clearTimeout(timer);
-      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("scroll", stop);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reduce]);
+  }, [done, reduce, nudge]);
 
   /* ── desktop: where the atom must travel to sit centre-stage for the core ── */
   const nucWrap = useRef<HTMLDivElement>(null);
@@ -297,21 +305,7 @@ export default function Hero() {
   const next = CHAPTERS[chapter + 1]?.name;
 
   return (
-    <section ref={section} id="top" className="relative h-[818vh]">
-      {/* touch: one native snap point per featured project (only active where html has
-          scroll-snap-type, i.e. coarse pointers — see globals.css). Each sits where that
-          project is centre-stage: raw × (section height − viewport height). */}
-      {FEATURED.map((_, i) => {
-        const r = rawForCoreT(projectT(i));
-        return (
-          <div
-            key={i}
-            aria-hidden
-            className="pointer-events-none absolute left-0 h-px w-px [scroll-snap-align:start] [scroll-snap-stop:normal]"
-            style={{ top: `calc(${(r * 100).toFixed(3)}% - ${r.toFixed(4)} * 100dvh)` }}
-          />
-        );
-      })}
+    <section ref={section} id="top" className="relative h-[400vh]">
       <div ref={stage3d} className="sticky top-0 isolate h-[100svh] overflow-hidden">
         {/* ── the water column ── */}
         <div aria-hidden className="absolute inset-0 -z-10 bg-paper">
@@ -324,14 +318,13 @@ export default function Hero() {
           <DepthParticles progress={p} reduce={reduce} />
         </div>
 
-        <div className="mx-auto h-full w-full max-w-6xl lg:grid lg:grid-cols-[1fr_1fr] lg:grid-rows-[minmax(0,1fr)] lg:items-center lg:gap-4 lg:px-8 lg:pb-[clamp(4rem,12svh,5rem)] lg:pt-[clamp(4.25rem,11svh,5.5rem)]">
+        <motion.div animate={nudge} className="mx-auto h-full w-full max-w-6xl lg:grid lg:grid-cols-[1fr_1fr] lg:grid-rows-[minmax(0,1fr)] lg:items-center lg:gap-4 lg:px-8 lg:pb-[clamp(4rem,12svh,5rem)] lg:pt-[clamp(4.25rem,11svh,5.5rem)]">
           {/* ── chapter copy ── */}
           {mobile ? (
             <MobileCopy
               chapter={chapter}
               shown={shown}
               instant={instant}
-              chapterT={[sp, t1, t2, t3][chapter]}
               blockTop={blockTop}
               blockY={blockY}
               onBlockSize={setBlockH}
@@ -374,11 +367,20 @@ export default function Hero() {
               />
             </motion.div>
           </motion.div>
-        </div>
+        </motion.div>
 
         {/* ── the core: the work, in orbit around the atom ── */}
         {desktop !== null && (
-          <ProjectOrbit progress={coreT} show={coreShow} enabled={chapter === 3} mobile={mobile} vw={vw} vh={vh} onPick={goToProject} onAll={() => goTo(4)} />
+          <ProjectOrbit
+            index={proj}
+            onIndex={setProj}
+            show={coreShow}
+            enabled={chapter === 3}
+            mobile={mobile}
+            vw={vw}
+            vh={vh}
+            onAll={() => goTo(4)}
+          />
         )}
 
         {/* ── depth meter (desktop) ── */}
@@ -393,39 +395,74 @@ export default function Hero() {
             <div className="text-[9px] uppercase tracking-[0.3em] text-ink-soft">Depth</div>
             <motion.div className="text-[15px] tabular-nums text-blue-glow">{depthText}</motion.div>
           </div>
-          <div className="relative flex flex-col items-end gap-7 pr-3">
+          {/* the whole page as one map — all seven layers, so you always know how much is left */}
+          <div className="relative flex flex-col items-end gap-[clamp(0.9rem,3svh,1.5rem)] pr-3">
             <span className="absolute right-0 top-1 h-[calc(100%-8px)] w-px bg-white/10" />
-            <motion.span className="absolute right-0 top-1 h-[calc(100%-8px)] w-px origin-top bg-blue-glow" style={{ scaleY: meterFill }} />
-            {CHAPTERS.map((c, i) => (
+            <motion.span
+              className="absolute right-0 top-1 h-[calc(100%-8px)] w-px origin-top bg-blue-glow"
+              initial={false}
+              animate={{ scaleY: chapter / (LAYERS.length - 1) }}
+              transition={{ duration: 0.8, ease }}
+            />
+            {LAYERS.map((l, i) => (
               <button
-                key={c.name}
+                key={l.name}
                 type="button"
                 onClick={() => goTo(i)}
                 className="group relative flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.2em]"
                 aria-current={chapter === i ? "step" : undefined}
               >
-                <span className={`transition-all duration-500 ${chapter === i ? "text-ink" : "text-ink-soft group-hover:text-ink"}`}>{c.name}</span>
+                <span className={`tabular-nums transition-colors duration-500 ${chapter === i ? "text-blue-glow" : "text-ink-soft/60"}`}>{l.n}</span>
+                <span className={`transition-colors duration-500 ${chapter === i ? "text-ink" : "text-ink-soft group-hover:text-ink"}`}>{l.name}</span>
                 <span
-                  className={`absolute -right-[15.5px] size-[7px] rounded-full border transition-all duration-500 ${chapter === i ? "scale-125 border-blue-glow bg-blue-glow shadow-[0_0_12px_rgb(var(--rgb-glow)/0.9)]" : "border-white/30 bg-paper"}`}
+                  className={`absolute -right-[15.5px] size-[7px] rounded-full border transition-all duration-500 ${
+                    chapter === i
+                      ? "scale-125 border-blue-glow bg-blue-glow shadow-[0_0_12px_rgb(var(--rgb-glow)/0.9)]"
+                      : i < chapter
+                        ? "border-blue-glow/70 bg-paper"
+                        : "border-white/30 bg-paper"
+                  }`}
                 />
               </button>
             ))}
           </div>
         </motion.nav>
 
-        {/* ── depth readout (mobile) — hidden on the first screen so it stays calm ── */}
-        <motion.div initial={false} animate={{ opacity: done ? 1 : 0 }} className="absolute inset-x-6 top-[4.5rem] z-40 sm:inset-x-8 lg:hidden">
-          <motion.div style={{ opacity: readoutIn }} className="flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.22em] text-ink-soft">
-            <span className="text-blue-glow">0{chapter + 1}</span>
-            <span className="text-ink">{CHAPTERS[chapter].name}</span>
-            <span className="relative h-px flex-1 bg-white/10">
-              <motion.span className="absolute inset-0 origin-left bg-blue-glow" style={{ scaleX: meterFill }} />
+        {/* ── where am I (mobile): one line under the header, from layer 02 on ──
+            the number + name, the whole page as seven segments (tap one to go there), the depth */}
+        <motion.nav
+          aria-label="Layers"
+          initial={false}
+          animate={{ opacity: done ? 1 : 0 }}
+          style={{ pointerEvents: chapter > 0 ? "auto" : "none" }}
+          className="absolute inset-x-6 top-[4.5rem] z-40 sm:inset-x-8 lg:hidden"
+        >
+          <motion.div style={{ opacity: readoutIn }} className="flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.22em] text-ink-soft sm:text-[10.5px]">
+            <span className="text-blue-glow">{LAYERS[chapter].n}</span>
+            <span className="whitespace-nowrap text-ink">{LAYERS[chapter].name}</span>
+            <span className="-my-3 flex min-w-0 flex-1 items-center gap-[3px]">
+              {LAYERS.map((l, i) => (
+                <button
+                  key={l.name}
+                  type="button"
+                  onClick={() => goTo(i)}
+                  aria-label={`${l.n} · ${l.name}`}
+                  aria-current={chapter === i ? "step" : undefined}
+                  className="flex h-8 min-w-0 flex-1 items-center"
+                >
+                  <span
+                    className={`h-[2px] w-full rounded-full transition-all duration-500 ${
+                      i === chapter ? "bg-blue-glow shadow-[0_0_8px_rgb(var(--rgb-glow)/0.8)]" : i < chapter ? "bg-blue-glow/45" : "bg-white/15"
+                    }`}
+                  />
+                </button>
+              ))}
             </span>
             <motion.span className="tabular-nums text-blue-glow">{depthText}</motion.span>
           </motion.div>
-        </motion.div>
+        </motion.nav>
 
-        {/* ── next-layer cue ── */}
+        {/* ── next-layer cue (desktop): what's next, and a peek of it rising from the bottom edge ── */}
         <motion.button
           type="button"
           onClick={() => goTo(chapter + 1)}
@@ -433,19 +470,16 @@ export default function Hero() {
           animate={{ opacity: done && chapter < 3 ? 1 : 0 }}
           transition={{ duration: 0.8 }}
           style={{ pointerEvents: chapter < 3 ? "auto" : "none" }}
-          className="absolute bottom-[clamp(0.75rem,2.5svh,1.5rem)] left-1/2 z-40 hidden -translate-x-1/2 flex-col items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-ink-soft transition-colors hover:text-ink lg:flex"
+          className="group absolute bottom-0 left-1/2 z-40 hidden -translate-x-1/2 flex-col items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-ink-soft transition-colors hover:text-ink lg:flex"
         >
           <span>
             Scroll to dive <span className="text-ink-soft/40">·</span> next: <span className="text-blue-glow">{next ?? "More work"}</span>
           </span>
-          <span className="relative h-[clamp(1.25rem,4svh,2.25rem)] w-px overflow-hidden bg-white/10">
-            {!reduce && (
-              <motion.span
-                className="absolute inset-x-0 top-0 h-1/2 bg-blue-glow"
-                animate={{ y: ["-100%", "200%"] }}
-                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-              />
-            )}
+          <span
+            aria-hidden
+            className="translate-y-[28%] whitespace-nowrap font-serif text-[clamp(1.6rem,3.6svh,2.3rem)] normal-case leading-none tracking-[-0.01em] text-ink opacity-30 transition-opacity duration-500 [mask-image:linear-gradient(to_bottom,black_35%,transparent_95%)] group-hover:opacity-60"
+          >
+            {PEEK[chapter + 1]}
           </span>
         </motion.button>
 
@@ -627,7 +661,6 @@ function MobileCopy({
   chapter,
   shown,
   instant,
-  chapterT,
   blockTop,
   blockY,
   onBlockSize,
@@ -636,7 +669,6 @@ function MobileCopy({
   chapter: number;
   shown: boolean;
   instant: boolean;
-  chapterT: MotionValue<number>;
   blockTop: number;
   blockY: MotionValue<number>;
   onBlockSize: (h: number) => void;
@@ -685,7 +717,7 @@ function MobileCopy({
           <SurfaceHeadline key="headline" shown={shown} instant={instant} top={blockTop} y={blockY} onSize={onBlockSize} onNext={onNext} />
         )}
       </AnimatePresence>
-      {/* ── deeper layers: content first; everything visible, lighting up as you scroll ── */}
+      {/* ── deeper layers: content first; it arrives whole the moment you land (no scroll needed) ── */}
       <div className="pointer-events-none absolute inset-x-6 bottom-[calc(max(1.25rem,env(safe-area-inset-bottom))+5.25rem)] top-[calc(5.5rem+1svh)] z-20 flex flex-col justify-[safe_center] sm:inset-x-8 sm:bottom-[calc(max(1.25rem,env(safe-area-inset-bottom))+6.25rem)]"
         ref={setDeepBox}
       >
@@ -693,13 +725,13 @@ function MobileCopy({
           {chapter > 0 && chapter < 3 && (
             <motion.div
               key={`deep${chapter}`}
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0, transition: { duration: 0.5, ease } }}
-              exit={{ opacity: 0, y: -24, filter: "blur(8px)", transition: { duration: 0.3 } }}
+              variants={chapterV}
+              initial="hidden"
+              animate="show"
+              exit="exit"
               className="pointer-events-auto [text-shadow:0_1px_12px_rgb(var(--rgb-halo)/0.9)]"
             >
               <div ref={setDeepCopy} style={{ zoom: fit }}>
-              <RevealCtx.Provider value={chapterT}>
                 <RItem i={0}>
                   <h2 className="font-serif text-[clamp(2.3rem,5.6svh,2.9rem)] leading-[1] tracking-[-0.02em] text-ink sm:text-[clamp(3rem,6svh,4.25rem)]">
                     {head.title}
@@ -708,8 +740,9 @@ function MobileCopy({
                 <div className="mt-[max(3svh,1.25rem)]">
                   <Body />
                 </div>
-              </RevealCtx.Provider>
-              <Teaser chapter={chapter} onNext={onNext} className="mt-[max(4.5svh,2rem)]" />
+                <RItem i={9}>
+                  <Teaser chapter={chapter} onNext={onNext} className="mt-[max(4.5svh,2rem)]" />
+                </RItem>
               </div>
             </motion.div>
           )}
@@ -748,42 +781,18 @@ function useFitZoom(box: HTMLElement | null, content: HTMLElement | null) {
   return zoom;
 }
 
-/* ── scroll-linked reveal (mobile) / variant reveal (desktop), one component ── */
+/* ── reveal: on landing, a layer's items arrive one after another in well under a second —
+      timed, not tied to the scroll, so there is never a "how far do I scroll" ── */
 
-const RevealCtx = createContext<MotionValue<number> | null>(null);
-type RItemProps = { i: number; as?: "div" | "li"; className?: string; children: ReactNode };
+type RItemProps = { i?: number; as?: "div" | "li"; className?: string; children: ReactNode };
 
-/** An item that, on mobile, sits "disabled" until the scroll reaches its turn. */
-function RItem(props: RItemProps) {
-  const t = useContext(RevealCtx);
-  return t ? <ScrollItem {...props} t={t} /> : <VariantItem {...props} />;
-}
-
-function VariantItem({ as = "div", className, children }: RItemProps) {
+function RItem({ as = "div", className, children }: RItemProps) {
   return as === "li" ? (
     <motion.li variants={itemV} className={className}>
       {children}
     </motion.li>
   ) : (
     <motion.div variants={itemV} className={className}>
-      {children}
-    </motion.div>
-  );
-}
-
-function ScrollItem({ t, i, as = "div", className, children }: RItemProps & { t: MotionValue<number> }) {
-  const at = i * 0.12;
-  const opacity = useTransform(t, [at, at + 0.2], [0.16, 1]);
-  const y = useTransform(t, [at, at + 0.2], [10, 0]);
-  const blur = useTransform(t, [at, at + 0.2], [3, 0]);
-  const filter = useTransform(blur, (b) => `blur(${b}px)`);
-  const style = { opacity, y, filter };
-  return as === "li" ? (
-    <motion.li style={style} className={className}>
-      {children}
-    </motion.li>
-  ) : (
-    <motion.div style={style} className={className}>
       {children}
     </motion.div>
   );
@@ -907,20 +916,19 @@ function SurfaceHeadline({
         </a>
       </motion.div>
 
-      {/* only now: the invitation to dive into layer 02 */}
+      {/* only now: the invitation to dive into layer 02 — and a peek of what's down there */}
       <motion.button
         {...enter(2)}
         type="button"
         onClick={onNext}
-        className="pointer-events-auto mx-auto mt-7 flex flex-col items-center gap-2 font-mono text-[9.5px] uppercase tracking-[0.28em] text-ink-soft sm:mt-9 sm:text-[11px]"
+        aria-label="Next: 02 · The Why"
+        className="pointer-events-auto mx-auto mt-6 flex flex-col items-center gap-1.5 font-mono text-[9.5px] uppercase tracking-[0.28em] text-ink-soft sm:mt-8 sm:text-[11px]"
       >
-        Scroll to read
-        <span className="relative h-6 w-px overflow-hidden bg-white/10">
-          <motion.span
-            className="absolute inset-x-0 top-0 h-1/2 bg-blue-glow"
-            animate={{ y: ["-100%", "200%"] }}
-            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-          />
+        <span>
+          Scroll <span className="text-blue-glow">↓</span> 02 · The Why
+        </span>
+        <span aria-hidden className="font-serif text-[1.3rem] normal-case leading-none tracking-[-0.01em] text-ink opacity-30 sm:text-[1.7rem]">
+          {PEEK[1]}
         </span>
       </motion.button>
     </motion.div>
@@ -1042,22 +1050,19 @@ const STEPS = [
 ];
 
 /**
- * The process as a connected path: a line grows from step to step (with the
- * scroll on mobile, on its own on desktop), each step lights up as the line
+ * The process as a connected path: a line grows from step to step on its own
+ * as you land on the layer, each step lights up as the line
  * reaches it, and once it hits "Test & Iterate" a curve loops back to the start —
  * because the process never really ends, it goes round again.
  */
 function ProcessBody() {
-  const ctx = useContext(RevealCtx);
-  const auto = useMotionValue(0);
+  const base = useMotionValue(0);
   useEffect(() => {
-    if (ctx) return;
-    const c = animate(auto, 1, { duration: 2.8, delay: 0.5, ease: "easeInOut" });
+    const c = animate(base, 1, { duration: 2.4, delay: 0.4, ease: "easeInOut" });
     return () => c.stop();
-  }, [ctx, auto]);
-  const base = ctx ?? auto;
-  const line = useTransform(base, ctx ? [0.06, 0.7] : [0, 0.8], [0, 1]);
-  const loop = useTransform(base, ctx ? [0.72, 0.9] : [0.82, 1], [0, 1]);
+  }, [base]);
+  const line = useTransform(base, [0, 0.8], [0, 1]);
+  const loop = useTransform(base, [0.82, 1], [0, 1]);
   const arrowIn = useTransform(loop, [0.85, 1], [0, 1]);
   // the loop draws itself using its measured length (Motion's pathLength renders dotted here)
   const loopPath = useRef<SVGPathElement>(null);

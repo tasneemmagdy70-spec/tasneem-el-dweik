@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { uiSound } from "@/lib/uiSound";
-import { AnimatePresence, motion, useAnimationFrame, useReducedMotion, type MotionValue } from "motion/react";
+import { animate, AnimatePresence, motion, useAnimationFrame, useMotionValue, useReducedMotion, type MotionValue } from "motion/react";
 import { FEATURED as PROJECTS } from "@/lib/projects";
 import ProjectCover from "./ProjectCover";
 import { ArrowUpRight } from "./icons";
@@ -14,8 +14,9 @@ import { ArrowUpRight } from "./icons";
  * centre, over the nucleus — with its caption always in the same place under
  * it. The eye never has to go looking. Everything else is an electron: small,
  * quiet, drifting on the atom's tilted shells, passing *behind* the project in
- * focus. Scrolling swaps who takes the stage; one shrinks back into orbit while
- * the next one rises into the centre.
+ * focus. Turning sideways (a swipe, the ‹ › arrows beside the card, ←/→) swaps
+ * who takes the stage; one shrinks back into orbit while the next rises into the
+ * centre. The scroll never turns projects — down always means the next layer.
  */
 
 const GOLDEN = 137.5 * (Math.PI / 180);
@@ -54,17 +55,19 @@ export function coreStage(vw: number, vh: number, mobile: boolean) {
 }
 
 type Props = {
-  progress: MotionValue<number>; // 0 → 1 across the core layer
+  index: number; // the project on stage
+  onIndex: (i: number) => void;
   show: MotionValue<number>; // 0 → 1 as the layer arrives
   enabled: boolean;
   mobile: boolean;
   vw: number;
   vh: number;
-  onPick: (i: number) => void;
   onAll: () => void;
 };
 
-export default function ProjectOrbit({ progress, show, enabled, mobile, vw, vh, onPick, onAll }: Props) {
+const HINT_KEY = "ed-orbit-hint";
+
+export default function ProjectOrbit({ index, onIndex, show, enabled, mobile, vw, vh, onAll }: Props) {
   const reduce = useReducedMotion();
   const N = PROJECTS.length;
   const { CW, CH, CAPH, fx, fy, top, bottom, tablet } = coreStage(vw, vh, mobile);
@@ -109,6 +112,36 @@ export default function ProjectOrbit({ progress, show, enabled, mobile, vw, vh, 
   const spin = useRef(0);
   const idle = useRef(false);
   const [active, setActive] = useState(0);
+  // where the stage is between projects (eases to `index` on every turn)
+  const at = useMotionValue(index);
+  useEffect(() => {
+    const c = animate(at, index, { duration: reduce ? 0 : 0.85, ease });
+    return () => c.stop();
+  }, [index, at, reduce]);
+
+  // the first visit: the project on stage leans left and back — "there's more this way" —
+  // and a short note says how (once per visitor)
+  const lean = useMotionValue(0);
+  const [hintOn, setHint] = useState(false);
+  const hint = hintOn && index === 0; // turning a project is the lesson learned — the note steps aside
+  useEffect(() => {
+    if (!enabled || reduce) return;
+    try {
+      if (localStorage.getItem(HINT_KEY)) return;
+    } catch {}
+    const t1 = window.setTimeout(() => {
+      setHint(true);
+      animate(lean, [0, -34, 0, -16, 0], { duration: 1.6, times: [0, 0.3, 0.6, 0.8, 1], ease: "easeInOut" });
+      try {
+        localStorage.setItem(HINT_KEY, "1");
+      } catch {}
+    }, 900);
+    const t2 = window.setTimeout(() => setHint(false), 4200);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [enabled, reduce, lean]);
   // a soft water drop each time a different project settles in the centre (only inside The Core)
   const lastLocked = useRef(-1);
   useEffect(() => {
@@ -136,13 +169,8 @@ export default function ProjectOrbit({ progress, show, enabled, mobile, vw, vh, 
     // electrons keep drifting — one slow lap every ~90s, never fast enough to pull the eye
     if (!reduce) spin.current += (Math.min(delta, 64) / 1000) * ((Math.PI * 2) / 90);
 
-    // dwell: each project holds the stage for a while, then hands it over
-    const raw = progress.get() * (N - 1);
-    const base = Math.min(Math.floor(raw), N - 1);
-    // desktop: hold, then a brisk hand-over. Touch: a longer, even hand-over, so a thumb
-    // never feels the project "jump" (same hold centre, i + 0.075, so snap points still match)
-    const f = mobile ? clamp((raw - base - 0.225) / 0.7) : clamp((raw - base - 0.3) / 0.55);
-    const a = base + smooth(f);
+    const a = at.get();
+    const nudge = lean.get();
 
     let front = 0;
     let best = -1;
@@ -169,7 +197,7 @@ export default function ProjectOrbit({ progress, show, enabled, mobile, vw, vh, 
       }
 
       // between orbit and stage
-      const x = lerp(ox, fx, focus);
+      const x = lerp(ox, fx, focus) + nudge * focus;
       const y = lerp(oy, fy, focus);
       const sc = lerp(REST * (0.88 + 0.12 * depth), 1, focus) * (0.85 + 0.15 * arrive);
       const el = cards.current[i];
@@ -188,12 +216,6 @@ export default function ProjectOrbit({ progress, show, enabled, mobile, vw, vh, 
       if (fr) {
         fr.style.strokeDashoffset = (PER * (1 - draw)).toFixed(1);
         fr.style.opacity = draw > 0.001 ? "1" : "0";
-      }
-      // mobile has no hover: the cover slowly pushes in while you stay on it
-      const im = imgs.current[i];
-      if (im && mobile) {
-        const hold = clamp((raw - i + 0.15) / 0.6);
-        im.style.transform = `scale(${(1 + 0.06 * hold * focus).toFixed(4)})`;
       }
       const tr = trails.current[i];
       if (tr) {
@@ -284,7 +306,7 @@ export default function ProjectOrbit({ progress, show, enabled, mobile, vw, vh, 
               onClick={(e) => {
                 if (!isActive) {
                   e.preventDefault();
-                  onPick(i);
+                  onIndex(i);
                 }
               }}
               aria-label={isActive ? `${proj.name} — open case study on Behance` : `Show ${proj.name}`}
@@ -338,6 +360,59 @@ export default function ProjectOrbit({ progress, show, enabled, mobile, vw, vh, 
         );
       })}
 
+      {/* ‹ › beside the card: says, without words, that the work turns sideways */}
+      {(
+        [
+          [-1, "Previous project"],
+          [1, "Next project"],
+        ] as const
+      ).map(([dir, label]) => {
+        const can = dir < 0 ? index > 0 : index < N - 1;
+        const size = mobile && !tablet ? 36 : 44;
+        // phone: centred in the margin beside the card; wider screens: a little off the card's edge
+        const off = mobile && !tablet ? Math.max(size / 2 + 4, (vw - CW) / 4) : CW / 2 + (mobile ? 36 : 44);
+        const cx = mobile && !tablet ? (dir < 0 ? off : vw - off) : fx + dir * off;
+        return (
+          <motion.button
+            key={dir}
+            type="button"
+            aria-label={label}
+            disabled={!can}
+            onClick={() => can && onIndex(index + dir)}
+            tabIndex={enabled ? 0 : -1}
+            className={`absolute z-[96] grid place-items-center rounded-full border border-white/15 bg-panel/70 text-ink backdrop-blur transition-[opacity,border-color,color] duration-300 hover:border-blue-glow/60 hover:text-blue-glow disabled:pointer-events-none ${
+              enabled ? "pointer-events-auto" : ""
+            }`}
+            style={{ left: cx - size / 2, top: fy - size / 2, width: size, height: size, opacity: show }}
+            animate={hint && dir > 0 ? { scale: [1, 1.15, 1, 1.15, 1] } : { scale: 1 }}
+            transition={{ duration: 1.6 }}
+          >
+            <span className={`transition-opacity duration-300 ${can ? "opacity-100" : "opacity-25"}`}>
+              <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden>
+                <path d={dir < 0 ? "M10 3.5 5.5 8l4.5 4.5" : "M6 3.5 10.5 8 6 12.5"} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          </motion.button>
+        );
+      })}
+
+      {/* first visit: how to turn the work */}
+      <AnimatePresence>
+        {hint && (
+          <motion.div
+            key="hint"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 6 }}
+            transition={{ duration: 0.4, ease }}
+            className="absolute z-[97] -translate-x-1/2 whitespace-nowrap rounded-full border border-white/15 bg-panel-deep/85 px-3.5 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink backdrop-blur"
+            style={{ left: fx, top: fy + CH / 2 - 48 }}
+          >
+            {mobile ? "← Swipe for more projects →" : "← → or the arrows for more projects"}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* the caption: always in the same place, under the stage */}
       <motion.div className="absolute z-[90]" style={{ left: fx - capW / 2, top: capTop, width: capW, opacity: show }}>
         <AnimatePresence mode="wait" initial={false}>
@@ -388,8 +463,16 @@ export default function ProjectOrbit({ progress, show, enabled, mobile, vw, vh, 
         <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-soft tabular-nums sm:text-[12px] lg:text-[10px]">
           <span className="text-sand">{String(active + 1).padStart(2, "0")}</span> / {String(N).padStart(2, "0")}
         </span>
-        {/* (desktop only: on a phone the next section is one thumb-flick away anyway) */}
-        {!mobile && (
+        {/* phone: the way on, as a quiet line (the bottom-left corner belongs to "Let's talk") */}
+        {mobile ? (
+          <button
+            type="button"
+            onClick={onAll}
+            className={`inline-flex min-h-11 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-ink-soft sm:text-[12px] ${enabled ? "pointer-events-auto" : ""}`}
+          >
+            Next <span className="text-blue-glow">↓</span> <span className="text-ink">More work</span>
+          </button>
+        ) : (
         <button
           type="button"
           onClick={onAll}

@@ -122,7 +122,7 @@ export default function Navbar() {
             onClick={(e) => {
               e.preventDefault();
               setOpen(false);
-              window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+              goToLayer(0);
             }}
             style={{ scale: logoScale, opacity: logoDim }}
             className="shrink-0 origin-left whitespace-nowrap font-script text-[1.8rem] leading-none text-ink transition-colors hover:text-blue-glow md:text-[2.6rem]"
