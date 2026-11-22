@@ -132,14 +132,22 @@ export default function Hero() {
     setChapter(Math.min(3, Math.floor(v * 4 + 0.0001)));
   });
 
-  const depthText = useTransform(p, (v) => `−${String(Math.round(v * 360)).padStart(3, "0")}m`);
+  // each layer has its own depth (0 / 120 / 240 / 360m); arriving counts up (or down) to it
+  // in step with the move — never a jump from 198 to 360 halfway through a glide
+  const depth = useMotionValue(0);
+  useEffect(() => {
+    const c = animate(depth, CHAPTERS[chapter].depth, { duration: 0.9, ease });
+    return () => c.stop();
+  }, [chapter, depth]);
+  const depthText = useTransform(depth, (v) => `−${String(Math.round(v)).padStart(3, "0")}m`);
   const surfaceLight = useTransform(p, [0, 0.75], [1, 0.12]);
   const abyss = useTransform(p, [0, 1], [0, 0.75]);
   // leaving the hero for "More work": the scene sinks back and fades while the next section rises,
   // so this step reads as one more layer down — not as the page suddenly swapping
   const { scrollYProgress: leave } = useScroll({ target: section, offset: ["end end", "end start"] });
-  const leaveOp = useTransform(leave, [0, 0.6], [1, 0]);
-  const leaveScale = useTransform(leave, [0, 0.6], [1, 0.92]);
+  // (tied to the finger's own scroll: it moves exactly as far as you do, no faster)
+  const leaveOp = useTransform(leave, [0, 0.8], [1, 0.2]);
+  const leaveScale = useTransform(leave, [0, 0.8], [1, 0.96]);
 
   /* ── mobile choreography (all scroll-linked, so it's reversible) ──
      One focal point per moment:
@@ -224,8 +232,15 @@ export default function Hero() {
     setProj((i) => Math.max(0, Math.min(FEATURED.length - 1, i + dir)));
     return true;
   };
+  // a finger on the work: the projects follow it (NaN = no finger)
+  const sideDrag = useMotionValue(Number.NaN);
+  const dragSide = (dx: number | null) => {
+    if (chapterRef.current !== 3) return false;
+    sideDrag.set(dx === null ? Number.NaN : dx);
+    return true;
+  };
   // one gesture = one layer (phones also rest once with the first page lifted, when it needs it)
-  useLayerPager({ enabled: done, lift: mobile && geo.drop < -4, onSide: turn });
+  useLayerPager({ enabled: done, lift: mobile && geo.drop < -4, onSide: turn, onSideDrag: dragSide });
 
   // First screen: if nothing has moved for a few seconds, the page lifts a little and settles
   // back — the content itself shows that it scrolls. Twice at most, and never once you've moved.
@@ -379,6 +394,7 @@ export default function Hero() {
           <ProjectOrbit
             index={proj}
             onIndex={setProj}
+            drag={sideDrag}
             show={coreShow}
             enabled={chapter === 3}
             mobile={mobile}
@@ -444,7 +460,9 @@ export default function Hero() {
         >
           <motion.div style={{ opacity: readoutIn }} className="flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.22em] text-ink-soft sm:text-[10.5px]">
             <span className="text-blue-glow">{LAYERS[chapter].n}</span>
-            <span className="whitespace-nowrap text-ink">{LAYERS[chapter].name}</span>
+            {/* a fixed slot (as wide as the longest name), so the bar never stretches or shrinks
+                when the name changes — only its fill moves */}
+            <span className="w-[6.6rem] shrink-0 truncate whitespace-nowrap text-ink sm:w-[7.9rem]">{LAYERS[chapter].name}</span>
             <span className="-my-3 flex min-w-0 flex-1 items-center gap-[3px]">
               {LAYERS.map((l, i) => (
                 <button

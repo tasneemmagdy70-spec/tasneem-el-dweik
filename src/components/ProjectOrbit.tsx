@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { uiSound } from "@/lib/uiSound";
-import { animate, AnimatePresence, motion, useAnimationFrame, useMotionValue, useReducedMotion, type MotionValue } from "motion/react";
+import { animate, AnimatePresence, motion, useAnimationFrame, useMotionValue, useMotionValueEvent, useReducedMotion, type MotionValue } from "motion/react";
 import { FEATURED as PROJECTS } from "@/lib/projects";
 import ProjectCover from "./ProjectCover";
 import { ArrowUpRight } from "./icons";
@@ -57,6 +57,7 @@ export function coreStage(vw: number, vh: number, mobile: boolean) {
 type Props = {
   index: number; // the project on stage
   onIndex: (i: number) => void;
+  drag: MotionValue<number>; // a finger's sideways travel in px while it's on the work (NaN = none)
   show: MotionValue<number>; // 0 → 1 as the layer arrives
   enabled: boolean;
   mobile: boolean;
@@ -67,7 +68,7 @@ type Props = {
 
 const HINT_KEY = "ed-orbit-hint";
 
-export default function ProjectOrbit({ index, onIndex, show, enabled, mobile, vw, vh, onAll }: Props) {
+export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobile, vw, vh, onAll }: Props) {
   const reduce = useReducedMotion();
   const N = PROJECTS.length;
   const { CW, CH, CAPH, fx, fy, top, bottom, tablet } = coreStage(vw, vh, mobile);
@@ -113,11 +114,42 @@ export default function ProjectOrbit({ index, onIndex, show, enabled, mobile, vw
   const idle = useRef(false);
   const [active, setActive] = useState(0);
   // where the stage is between projects (eases to `index` on every turn)
+  // (an unhurried in-out turn: the hand-over should read as a calm orbit, not a flick)
   const at = useMotionValue(index);
+  const indexRef = useRef(index);
+  const releasedAt = useRef(-1e9);
   useEffect(() => {
-    const c = animate(at, index, { duration: reduce ? 0 : 0.85, ease });
+    indexRef.current = index;
+    // right after a finger let go the stage is already moving: carry on (ease-out), don't restart
+    const fromFinger = performance.now() - releasedAt.current < 200;
+    const c = animate(at, index, {
+      duration: reduce ? 0 : fromFinger ? 0.55 : 0.8,
+      ease: fromFinger ? [0.33, 1, 0.68, 1] : [0.4, 0, 0.2, 1],
+    });
     return () => c.stop();
   }, [index, at, reduce]);
+
+  // touch: while a finger is on the work, the stage follows it — a full turn takes ~60% of the
+  // screen's width, and past the first / last project it only gives a little (a soft edge).
+  // On release the stage carries on from exactly where the finger left it.
+  const held = useRef(0);
+  useMotionValueEvent(drag, "change", (dx) => {
+    if (Number.isNaN(dx)) {
+      if (!held.current) return;
+      at.set(at.get() + held.current);
+      held.current = 0;
+      releasedAt.current = performance.now();
+      animate(at, indexRef.current, { duration: reduce ? 0 : 0.55, ease: [0.33, 1, 0.68, 1] });
+      return;
+    }
+    let off = -dx / (vw * 0.6);
+    const base = at.get();
+    const lo = -base;
+    const hi = N - 1 - base;
+    if (off < lo) off = lo + (off - lo) * 0.25;
+    if (off > hi) off = hi + (off - hi) * 0.25;
+    held.current = Math.max(-1.2, Math.min(1.2, off));
+  });
 
   // the first visit: the project on stage leans left and back — "there's more this way" —
   // and a short note says how (once per visitor)
@@ -169,7 +201,7 @@ export default function ProjectOrbit({ index, onIndex, show, enabled, mobile, vw
     // electrons keep drifting — one slow lap every ~90s, never fast enough to pull the eye
     if (!reduce) spin.current += (Math.min(delta, 64) / 1000) * ((Math.PI * 2) / 90);
 
-    const a = at.get();
+    const a = at.get() + held.current;
     const nudge = lean.get();
 
     let front = 0;
