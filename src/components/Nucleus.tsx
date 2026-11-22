@@ -369,10 +369,10 @@ export default function Nucleus({ stage, instant, reduce, compact, labels, label
               height={PORTRAIT.h}
               // eager, not preloaded: the intro gives it seconds to arrive, and a preload hint
               // whose size didn't match the real one made browsers download the portrait twice.
-              // sizes = the portrait's real width (~55% of the atom box: min(150vw, 74svh)).
+              // sizes = the portrait's real width (~55% of the atom box: min(130vw, 64svh)).
               loading="eager"
               quality={95}
-              sizes="(max-width: 1023px) min(83vw, 41vh), 320px"
+              sizes="(max-width: 1023px) min(72vw, 36vh), 320px"
               className="h-auto w-full [filter:drop-shadow(0_0_24px_rgb(var(--rgb-bright)/0.18))]"
               draggable={false}
             />

@@ -145,7 +145,9 @@ export default function Hero() {
   const mobile = desktop === false;
   const sp = useTransform(p, [0, 0.25], [0, 1]);
   const [vw, vh] = useViewport();
-  const B = Math.min(1.5 * vw, 0.74 * vh); // nucleus box — matches the CSS width below
+  // nucleus box — matches the CSS width below. (~13% smaller than it was, so the first page keeps
+  // room under the portrait for the headline and both buttons)
+  const B = Math.min(1.3 * vw, 0.64 * vh);
   const TOP = 80 + 0.12 * vh; // nucleus box top — matches top-[calc(5rem+12svh)]
   const tablet = mobile && vw >= 640;
   // phone/tablet surface: the portrait stays as it is; scrolling just lifts the first screen
@@ -347,7 +349,7 @@ export default function Hero() {
           {/* ── nucleus ── */}
           <motion.div
             ref={nucWrap}
-            className="absolute left-[calc(50vw-min(75vw,37svh))] top-[calc(5rem+12svh)] z-10 w-[min(150vw,74svh)] lg:relative lg:left-auto lg:top-auto lg:order-2 lg:mx-auto lg:w-full lg:max-w-[620px]"
+            className="absolute left-[calc(50vw-min(65vw,32svh))] top-[calc(5rem+12svh)] z-10 w-[min(130vw,64svh)] lg:relative lg:left-auto lg:top-auto lg:order-2 lg:mx-auto lg:w-full lg:max-w-[620px]"
             style={mobile ? { originY: 0, x: mX, y: mY, scale: mScale, filter: mFilter, opacity: mFade } : { originY: 0.5 }}
             // desktop only — while the breakpoint is still unknown, animating x/y here would take
             // ownership of them and the mobile dock (style x/y) would never move the atom
