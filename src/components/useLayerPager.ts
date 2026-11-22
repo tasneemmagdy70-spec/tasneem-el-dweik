@@ -48,16 +48,19 @@ export function useLayerPager({
       const ys = stops();
       const y = window.scrollY;
       const last = ys[ys.length - 1];
-      if (y < last - 2) return true;
-      return Math.abs(y - last) <= 2 && dir < 0; // resting on The Core, going back up
+      // a little slack around The Core: anywhere near it counts as "on it", so going down from
+      // there is always the page's own scroll — never a pull back up
+      if (y < last - 40) return true;
+      return y <= last + 2 && dir < 0;
     };
     const step = (dir: 1 | -1) => {
       const ys = stops();
       const y = window.scrollY;
       const near = ys.reduce((a, b) => (Math.abs(b - y) < Math.abs(a - y) ? b : a));
       // between two layers (e.g. scrolled back up from "More work"): land on the closest one first
-      if (Math.abs(near - y) > 2) return glideTo(near);
-      const target = dir > 0 ? ys.find((s) => s > y + 2) : [...ys].reverse().find((s) => s < y - 2);
+      const slack = near === ys[ys.length - 1] ? 40 : 2;
+      if (Math.abs(near - y) > slack) return glideTo(near);
+      const target = dir > 0 ? ys.find((s) => s > near + 2) : [...ys].reverse().find((s) => s < near - 2);
       if (target !== undefined) glideTo(target);
     };
 
@@ -188,7 +191,7 @@ export function useLayerPager({
         if (isGliding() || track || frozen()) return;
         const ys = stops();
         const y = window.scrollY;
-        if (y >= ys[ys.length - 1] - 2) return;
+        if (y >= ys[ys.length - 1] - 40) return; // at or past The Core: the page is the reader's
         const near = ys.reduce((a, b) => (Math.abs(b - y) < Math.abs(a - y) ? b : a));
         if (Math.abs(near - y) > 2) glideTo(near);
       }, 180);

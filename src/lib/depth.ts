@@ -55,11 +55,16 @@ export function glideTo(y: number, done?: () => void) {
   glideRaf = requestAnimationFrame(tick);
 }
 
-/** The page y where the hero shows raw position r (0–1). */
+/** The page y where the hero shows raw position r (0–1).
+ *  Measured against the pinned stage's own height (100svh), never window.innerHeight: on a phone
+ *  innerHeight grows and shrinks as the address bar hides and shows, which would move "the end of
+ *  layer 04" under the reader's finger and pull them back up out of "More work". */
 export function heroY(r: number) {
   const el = document.getElementById("top");
   if (!el) return 0;
-  return el.offsetTop + r * (el.offsetHeight - window.innerHeight);
+  const stage = el.firstElementChild as HTMLElement | null;
+  const h = stage?.offsetHeight || window.innerHeight;
+  return el.offsetTop + r * (el.offsetHeight - h);
 }
 
 export function scrollToRaw(r: number) {
