@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { REST, SURFACE_LIFT, glideTo, heroY, isGliding } from "@/lib/depth";
+import { REST, SURFACE_LIFT, glideTo, heroY, isGliding, stopGlide } from "@/lib/depth";
 
 /**
  * One gesture = one layer.
@@ -112,16 +112,42 @@ export function useLayerPager({
       }
     };
 
-    /* ── touch ── */
-    let track: { x: number; y: number; axis: "x" | "y" | null; lx: number; lt: number; v: number; dragging: boolean } | null = null;
+    /* ── touch ──
+       The page follows the finger from the first pixel (no dead "is this enough?" zone), and
+       on release it finishes the move to the next layer — or settles back if the push was only
+       a nudge. A new swipe while it's still moving takes over at once and carries on. */
+    let track: {
+      x: number;
+      y: number;
+      axis: "x" | "y" | null;
+      lx: number;
+      lt: number;
+      v: number;
+      dragging: boolean;
+      sy: number; // where the page was when the finger landed
+      base: number; // the layer this move starts from
+      ly: number;
+      vy: number;
+    } | null = null;
+    let heading: number | null = null; // where the current glide is going
+    const go = (y: number) => {
+      heading = y;
+      glideTo(y, () => (heading = null));
+    };
     const onStart = (e: TouchEvent) => {
       track = null;
       if (frozen() || e.touches.length > 1) return;
       // a tap on a button (the orbit's ‹ ›, the layer bar…) is a tap — never let it become a swipe
       if ((e.target as Element | null)?.closest?.("button")) return;
       if (!ours(-1) && !ours(1)) return;
+      // still moving from the last swipe: the finger takes over from here, aiming past where it was going
+      const ys = stops();
+      const target = isGliding() && heading !== null ? heading : null;
+      if (isGliding()) stopGlide();
+      const y = window.scrollY;
+      const base = target ?? ys.reduce((a, b) => (Math.abs(b - y) < Math.abs(a - y) ? b : a));
       const t = e.touches[0];
-      track = { x: t.clientX, y: t.clientY, axis: null, lx: t.clientX, lt: e.timeStamp, v: 0, dragging: false };
+      track = { x: t.clientX, y: t.clientY, axis: null, lx: t.clientX, lt: e.timeStamp, v: 0, dragging: false, sy: y, base, ly: t.clientY, vy: 0 };
     };
     const onMove = (e: TouchEvent) => {
       if (!track) return;
@@ -129,17 +155,25 @@ export function useLayerPager({
       const t = e.touches[0];
       const dx = t.clientX - track.x;
       const dy = t.clientY - track.y;
-      if (!track.axis && Math.max(Math.abs(dx), Math.abs(dy)) > 12) track.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
-      // resting on The Core, a push downward is ordinary scrolling into "More work" — the page's own
-      if (track.axis === "y" && !ours(dy < 0 ? 1 : -1)) return void (track = null);
+      if (!track.axis && Math.max(Math.abs(dx), Math.abs(dy)) > 6) {
+        track.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+        // resting on The Core, a push downward is ordinary scrolling into "More work" — the page's own
+        if (track.axis === "y" && !ours(dy < 0 ? 1 : -1)) return void (track = null);
+      }
+      const dt = e.timeStamp - track.lt;
       if (track.axis === "x") {
         // the projects follow the finger (measured from where the swipe was recognised, so they don't jump)
-        const dt = e.timeStamp - track.lt;
         if (dt > 0) track.v = 0.7 * track.v + 0.3 * ((t.clientX - track.lx) / dt);
-        track.lx = t.clientX;
-        track.lt = e.timeStamp;
-        track.dragging = dragRef.current(dx - Math.sign(dx) * 12) || track.dragging;
+        track.dragging = dragRef.current(dx - Math.sign(dx) * 6) || track.dragging;
       }
+      if (track.axis === "y") {
+        if (dt > 0) track.vy = 0.6 * track.vy + 0.4 * ((t.clientY - track.ly) / dt);
+        const ys = stops();
+        window.scrollTo({ top: Math.max(ys[0], Math.min(ys[ys.length - 1], track.sy - dy)), behavior: "instant" });
+      }
+      track.lx = t.clientX;
+      track.ly = t.clientY;
+      track.lt = e.timeStamp;
       if (track.axis && e.cancelable) e.preventDefault();
     };
     /** end a sideways drag: hand the projects back, then turn if the swipe meant it */
@@ -160,9 +194,22 @@ export function useLayerPager({
       const dy = touch.clientY - t.y;
       if (t.axis === "x") return release(dx);
       track = null;
-      if (t.axis === "y" && !isGliding() && Math.abs(dy) > 36) step(dy < 0 ? 1 : -1);
+      if (t.axis !== "y") {
+        // a tap that stopped a glide: finish where it was heading
+        if (Math.abs(window.scrollY - t.base) > 2) go(t.base);
+        return;
+      }
+      const ys = stops();
+      const dir = dy < 0 ? 1 : -1;
+      // a short push is enough — so is a quick flick (but a slow nudge settles back)
+      const meant = Math.abs(dy) > 28 || (Math.abs(t.vy) > 0.25 && Math.sign(-t.vy) === dir);
+      let target = t.base;
+      if (meant) {
+        const next = dir > 0 ? ys.find((s) => s > t.base + 2) : [...ys].reverse().find((s) => s < t.base - 2);
+        if (next !== undefined) target = next;
+      }
+      go(target);
     };
-
     /* ── keys ── */
     const onKey = (e: KeyboardEvent) => {
       if (frozen() || e.altKey || e.ctrlKey || e.metaKey) return;

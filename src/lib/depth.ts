@@ -27,6 +27,11 @@ const reduced = () => typeof window !== "undefined" && window.matchMedia("(prefe
 let glideRaf = 0;
 let gliding = false;
 export const isGliding = () => gliding;
+/** stop a glide where it is (a finger took over) */
+export function stopGlide() {
+  cancelAnimationFrame(glideRaf);
+  gliding = false;
+}
 
 export function glideTo(y: number, done?: () => void) {
   cancelAnimationFrame(glideRaf);
@@ -38,13 +43,14 @@ export function glideTo(y: number, done?: () => void) {
     done?.();
     return;
   }
-  // long enough to read as a move between layers, never long enough to feel like waiting
-  const dur = Math.min(1100, 650 + (Math.abs(d) / window.innerHeight) * 140);
+  // short and responsive: it answers at once and only slows as it settles (ease-out) — the
+  // remaining distance sets the time, so finishing a move the finger started is quick
+  const dur = Math.min(850, 420 + (Math.abs(d) / window.innerHeight) * 300);
   const t0 = performance.now();
   gliding = true;
   const tick = (now: number) => {
     const t = Math.min(1, (now - t0) / dur);
-    const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; // ease in-out
+    const e = 1 - Math.pow(1 - t, 3); // ease-out
     window.scrollTo({ top: from + d * e, behavior: "instant" });
     if (t < 1) glideRaf = requestAnimationFrame(tick);
     else {

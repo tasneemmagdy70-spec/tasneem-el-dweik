@@ -239,8 +239,9 @@ export default function Hero() {
     sideDrag.set(dx === null ? Number.NaN : dx);
     return true;
   };
-  // one gesture = one layer (phones also rest once with the first page lifted, when it needs it)
-  useLayerPager({ enabled: done, lift: mobile && geo.drop < -4, onSide: turn, onSideDrag: dragSide });
+  // one gesture = one layer
+  // (no half-step on phones any more: one swipe from the first screen lands straight on The Why)
+  useLayerPager({ enabled: done, lift: false, onSide: turn, onSideDrag: dragSide });
 
   // First screen: if nothing has moved for a few seconds, the page lifts a little and settles
   // back — the content itself shows that it scrolls. Twice at most, and never once you've moved.
