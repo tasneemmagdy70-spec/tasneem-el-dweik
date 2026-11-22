@@ -642,6 +642,11 @@ function MobileCopy({
 }) {
   const head = HEADS[chapter];
   const Body = BODIES[chapter];
+  // the deeper layers must fit between the depth bar and the floating button on every phone —
+  // including phones with a larger system font, where the copy grows taller than the space
+  const [deepBox, setDeepBox] = useState<HTMLDivElement | null>(null);
+  const [deepCopy, setDeepCopy] = useState<HTMLDivElement | null>(null);
+  const fit = useFitZoom(deepBox, deepCopy);
   // the role rides up with the rest of the first page (one piece, one scroll),
   // fading only as it slides under the top bar
   const roleY = blockY;
@@ -679,7 +684,9 @@ function MobileCopy({
         )}
       </AnimatePresence>
       {/* ── deeper layers: content first; everything visible, lighting up as you scroll ── */}
-      <div className="pointer-events-none absolute inset-x-6 bottom-[calc(max(1.25rem,env(safe-area-inset-bottom))+5.25rem)] top-[calc(5.5rem+1svh)] z-20 flex flex-col justify-center sm:inset-x-8 sm:bottom-[calc(max(1.25rem,env(safe-area-inset-bottom))+6.25rem)]">
+      <div className="pointer-events-none absolute inset-x-6 bottom-[calc(max(1.25rem,env(safe-area-inset-bottom))+5.25rem)] top-[calc(5.5rem+1svh)] z-20 flex flex-col justify-[safe_center] sm:inset-x-8 sm:bottom-[calc(max(1.25rem,env(safe-area-inset-bottom))+6.25rem)]"
+        ref={setDeepBox}
+      >
         <AnimatePresence mode="wait">
           {chapter > 0 && chapter < 3 && (
             <motion.div
@@ -689,6 +696,7 @@ function MobileCopy({
               exit={{ opacity: 0, y: -24, filter: "blur(8px)", transition: { duration: 0.3 } }}
               className="pointer-events-auto [text-shadow:0_1px_12px_rgb(var(--rgb-halo)/0.9)]"
             >
+              <div ref={setDeepCopy} style={{ zoom: fit }}>
               <RevealCtx.Provider value={chapterT}>
                 <RItem i={0}>
                   <h2 className="font-serif text-[clamp(2.3rem,5.6svh,2.9rem)] leading-[1] tracking-[-0.02em] text-ink sm:text-[clamp(3rem,6svh,4.25rem)]">
@@ -700,12 +708,42 @@ function MobileCopy({
                 </div>
               </RevealCtx.Provider>
               <Teaser chapter={chapter} onNext={onNext} className="mt-[max(4.5svh,2rem)]" />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
     </>
   );
+}
+
+/**
+ * Shrinks `content` (CSS zoom, which scales layout too, so centring stays true) just enough to
+ * fit inside `box`. 1 when it already fits; never below 0.72, so text stays readable — past that
+ * the box's safe centring lets it run on downward instead of over the header.
+ */
+function useFitZoom(box: HTMLElement | null, content: HTMLElement | null) {
+  const [zoom, setZoom] = useState(1);
+  const current = useRef(1);
+  useLayoutEffect(() => {
+    if (!box || !content) return;
+    const measure = () => {
+      // the rendered height includes the zoom in use, so divide it back out for the natural height
+      const natural = content.getBoundingClientRect().height / current.current;
+      if (!natural) return;
+      const next = Math.max(0.72, Math.min(1, (box.clientHeight - 4) / natural));
+      if (Math.abs(next - current.current) > 0.01) {
+        current.current = next;
+        setZoom(next);
+      }
+    };
+    const ro = new ResizeObserver(measure);
+    ro.observe(box);
+    ro.observe(content);
+    measure();
+    return () => ro.disconnect();
+  }, [box, content]);
+  return zoom;
 }
 
 /* ── scroll-linked reveal (mobile) / variant reveal (desktop), one component ── */
