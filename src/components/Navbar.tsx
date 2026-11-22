@@ -6,7 +6,7 @@ import { AVAILABILITY, BEHANCE_URL, CV_URL, EMAIL, EMAIL_URL, LINKEDIN_URL, WHAT
 import { LAYERS, currentLayer, goToLayer } from "@/lib/depth";
 import CopyButton from "./CopyButton";
 import ThemeToggle from "./ThemeToggle";
-import SoundToggle from "./SoundToggle";
+import { SoundEffects, SoundSwitch } from "./SoundToggle";
 import { uiSound } from "@/lib/uiSound";
 import { ArrowUpRight, WhatsAppIcon } from "./icons";
 
@@ -149,8 +149,9 @@ export default function Navbar() {
               <Roll>Let&apos;s Talk</Roll>
             </a>
 
-            {/* sound (off by default) · light / dark */}
-            <SoundToggle />
+            {/* light / dark. (Sound has no header button: it's on by default as a quiet reply to
+                clicks, with its on/off switch kept in the menu and the footer.) */}
+            <SoundEffects />
             <ThemeToggle />
 
             {/* burger */}
@@ -314,6 +315,7 @@ export default function Navbar() {
                       </a>
                     ))}
                   </div>
+                  <SoundSwitch className="-my-2 self-start" />
                 </motion.div>
               </div>
             </motion.div>

@@ -7,6 +7,7 @@ import CopyButton from "./CopyButton";
 import ContactAtom from "./ContactAtom";
 import DeepAmbient, { DepthTag } from "./DeepAmbient";
 import { ArrowUpRight, LinkedInIcon, MailIcon, WhatsAppIcon } from "./icons";
+import { SoundSwitch } from "./SoundToggle";
 
 /**
  * CONTACT — the end of the dive. Every way in gets the same weight: a recruiter
@@ -195,6 +196,7 @@ export default function Contact() {
 
           <div className="mt-8 flex flex-col items-center gap-1.5 border-t border-white/[0.05] pt-6 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft sm:flex-row sm:justify-between">
             <span>© 2026 Tasneem El-Dweik</span>
+            <SoundSwitch />
             <span>Designed &amp; built by Tasneem</span>
           </div>
         </footer>

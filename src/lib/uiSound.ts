@@ -5,8 +5,11 @@
  * just enough to feel that something happened.
  *
  * No files: every sound is synthesised on the spot (Web Audio), so there's no
- * download and no delay. Sound is opt-in — nothing plays until the visitor
- * switches it on — and the choice is remembered on this device.
+ * download and no delay. Sound is ON by default — but only ever as a reply to
+ * the visitor's own click (browsers allow nothing before the first gesture),
+ * quiet, and as "ambient" audio: it respects a phone's silent switch and plays
+ * over the visitor's own music instead of stopping it. Turning it off (menu or
+ * footer) is remembered on this device.
  *
  * Palette: water and bubbles, the same world as the visuals. Each sound varies
  * a little every time so repetition never grates.
@@ -23,22 +26,20 @@ class UISound {
   private room: ConvolverNode | null = null;
   private roomIn: GainNode | null = null;
   private listeners = new Set<Listener>();
-  /** opt-in: nothing plays until the visitor switches sound on */
-  on = false;
-  volume = 0.7;
+  /** on unless this visitor turned it off before */
+  on = true;
+  volume = 0.5;
 
-  /** Must run inside a user gesture (click / tap / key). */
-  async unlock() {
-    if (!this.ctx) this.build();
-    await this.ctx!.resume();
+  constructor() {
+    try {
+      this.on = localStorage.getItem(KEY) !== "0";
+    } catch {}
   }
 
-  get remembered() {
-    try {
-      return localStorage.getItem(KEY) === "1";
-    } catch {
-      return false;
-    }
+  /** Must run inside a user gesture (click / tap / key): creates/wakes the audio engine. */
+  async unlock() {
+    if (!this.ctx) this.build();
+    if (this.ctx!.state !== "running") await this.ctx!.resume();
   }
 
   subscribe(fn: Listener) {
@@ -47,9 +48,9 @@ class UISound {
   }
 
   async enable() {
-    await this.unlock();
     this.on = true;
     this.save();
+    await this.unlock();
   }
 
   disable() {
@@ -68,8 +69,10 @@ class UISound {
     } catch {}
     this.listeners.forEach((fn) => fn(this.on));
   }
-
   private build() {
+    // "ambient": mixes with other audio and obeys the silent switch (Safari 16.4+; ignored elsewhere)
+    const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+    if (session) session.type = "ambient";
     const c = new AudioContext();
     this.ctx = c;
     this.master = c.createGain();

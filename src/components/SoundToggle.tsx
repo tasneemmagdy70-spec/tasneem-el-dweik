@@ -6,39 +6,23 @@ import { uiSound } from "@/lib/uiSound";
 
 const subscribe = (fn: () => void) => uiSound.subscribe(fn);
 const getOn = () => uiSound.on;
-const getOnServer = () => false;
+const getOnServer = () => true;
 
 export function useSoundOn() {
   return useSyncExternalStore(subscribe, getOn, getOnServer);
 }
 
 /**
- * The sound switch: a flat line when off, a softly moving waveform when on.
- * Off by default. If the visitor turned it on last time, it comes back at their
- * first gesture (browsers need one before any sound).
-
+ * Invisible: wakes the audio engine at the visitor's first gesture (browsers allow no sound
+ * before one), then answers every button and link with the same water bubbles as the
+ * periodic table. Controls that already have their own sound — the menu, the theme, the
+ * sound switch, the periodic tiles — opt out with data-sound="own", so nothing plays twice.
  */
-export default function SoundToggle() {
-  const on = useSoundOn();
-  const reduce = useReducedMotion();
-
-  // resume a remembered "on" at the first gesture
+export function SoundEffects() {
   useEffect(() => {
-    if (!uiSound.remembered || uiSound.on) return;
-    const resume = () => void uiSound.enable();
-    const opts = { once: true, passive: true } as const;
-    window.addEventListener("pointerdown", resume, opts);
-    window.addEventListener("keydown", resume, opts);
-    return () => {
-      window.removeEventListener("pointerdown", resume);
-      window.removeEventListener("keydown", resume);
+    const wake = () => {
+      if (uiSound.on) void uiSound.unlock();
     };
-  }, []);
-
-  // every button and link answers with the same water bubbles as the periodic table.
-  // (Controls that already have their own sound — the menu, theme, this switch, the
-  // periodic tiles — opt out with data-sound="own", so nothing ever plays twice.)
-  useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (!uiSound.on) return;
       const t = e.target as Element | null;
@@ -46,34 +30,50 @@ export default function SoundToggle() {
       if (!hit || hit.closest("[data-sound='own']")) return;
       uiSound.element();
     };
+    window.addEventListener("pointerdown", wake, { capture: true, passive: true });
+    window.addEventListener("keydown", wake, { capture: true, passive: true });
     document.addEventListener("click", onClick, { capture: true, passive: true });
-    return () => document.removeEventListener("click", onClick, { capture: true });
+    return () => {
+      window.removeEventListener("pointerdown", wake, { capture: true });
+      window.removeEventListener("keydown", wake, { capture: true });
+      document.removeEventListener("click", onClick, { capture: true });
+    };
   }, []);
+  return null;
+}
 
-  const bars = [0.35, 0.8, 0.5, 1, 0.6];
+/**
+ * The way out, kept quiet: a small "Sound · On/Off" line in the menu and the footer —
+ * there for anyone who needs silence, never competing for the header.
+ */
+export function SoundSwitch({ className = "" }: { className?: string }) {
+  const on = useSoundOn();
+  const reduce = useReducedMotion();
+  const bars = [0.4, 0.9, 0.55, 1];
   return (
     <button
       type="button"
-      onClick={() => void uiSound.toggle()}
       data-sound="own"
+      onClick={async () => {
+        await uiSound.toggle();
+        // turning it on answers with a bubble, so you hear what you switched on
+        if (uiSound.on) uiSound.element();
+      }}
       aria-pressed={on}
-      aria-label={on ? "Turn sound off" : "Turn sound on"}
-      title={on ? "Sound on" : "Sound off"}
-      className="relative grid size-9 place-items-center sm:size-10 rounded-full border border-white/12 bg-white/[0.04] text-ink-soft transition-colors duration-300 hover:border-blue-glow/50 hover:text-ink md:size-11"
+      className={`group inline-flex min-h-11 items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-soft transition-colors hover:text-ink ${className}`}
     >
-      <span className="flex h-3.5 items-center gap-[2.5px]" aria-hidden>
+      <span className="flex h-3 items-center gap-[2px]" aria-hidden>
         {bars.map((h, i) => (
           <motion.span
             key={i}
             className={`w-[2px] rounded-full ${on ? "bg-blue-glow" : "bg-current"}`}
             initial={false}
-            animate={
-              on && !reduce ? { height: [`${h * 100}%`, `${(1.15 - h) * 100}%`, `${h * 100}%`] } : { height: on ? `${h * 100}%` : "2px" }
-            }
+            animate={on && !reduce ? { height: [`${h * 100}%`, `${(1.15 - h) * 100}%`, `${h * 100}%`] } : { height: on ? `${h * 100}%` : "2px" }}
             transition={on && !reduce ? { duration: 1.1 + i * 0.13, repeat: Infinity, ease: "easeInOut" } : { duration: 0.3 }}
           />
         ))}
       </span>
+      Sound <span className={on ? "text-blue-glow" : ""}>{on ? "On" : "Off"}</span>
     </button>
   );
 }
