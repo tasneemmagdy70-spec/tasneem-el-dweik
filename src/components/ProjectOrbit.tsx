@@ -368,26 +368,31 @@ export default function ProjectOrbit({ index, onIndex, show, enabled, mobile, vw
         ] as const
       ).map(([dir, label]) => {
         const can = dir < 0 ? index > 0 : index < N - 1;
-        const size = mobile && !tablet ? 36 : 44;
+        const phone = mobile && !tablet;
+        const dot = phone ? 36 : 44; // the visible circle
+        const hit = 48; // the finger's target is always bigger than what you see
         // phone: centred in the margin beside the card; wider screens: a little off the card's edge
-        const off = mobile && !tablet ? Math.max(size / 2 + 4, (vw - CW) / 4) : CW / 2 + (mobile ? 36 : 44);
-        const cx = mobile && !tablet ? (dir < 0 ? off : vw - off) : fx + dir * off;
+        const off = phone ? Math.max(hit / 2, (vw - CW) / 4) : CW / 2 + (mobile ? 36 : 44);
+        const cx = phone ? (dir < 0 ? off : vw - off) : fx + dir * off;
         return (
           <motion.button
             key={dir}
             type="button"
             aria-label={label}
-            disabled={!can}
+            aria-disabled={!can}
             onClick={() => can && onIndex(index + dir)}
             tabIndex={enabled ? 0 : -1}
-            className={`absolute z-[96] grid place-items-center rounded-full border border-white/15 bg-panel/70 text-ink backdrop-blur transition-[opacity,border-color,color] duration-300 hover:border-blue-glow/60 hover:text-blue-glow disabled:pointer-events-none ${
-              enabled ? "pointer-events-auto" : ""
-            }`}
-            style={{ left: cx - size / 2, top: fy - size / 2, width: size, height: size, opacity: show }}
+            className={`group absolute z-[96] grid touch-manipulation place-items-center ${enabled ? "pointer-events-auto" : ""} ${can ? "" : "cursor-default"}`}
+            style={{ left: cx - hit / 2, top: fy - hit / 2, width: hit, height: hit, opacity: show }}
             animate={hint && dir > 0 ? { scale: [1, 1.15, 1, 1.15, 1] } : { scale: 1 }}
             transition={{ duration: 1.6 }}
           >
-            <span className={`transition-opacity duration-300 ${can ? "opacity-100" : "opacity-25"}`}>
+            <span
+              className={`grid place-items-center rounded-full border bg-panel/70 backdrop-blur transition-[opacity,border-color,color] duration-300 ${
+                can ? "border-white/20 text-ink group-hover:border-blue-glow/60 group-hover:text-blue-glow group-active:scale-95" : "border-white/10 text-ink opacity-30"
+              }`}
+              style={{ width: dot, height: dot }}
+            >
               <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden>
                 <path d={dir < 0 ? "M10 3.5 5.5 8l4.5 4.5" : "M6 3.5 10.5 8 6 12.5"} strokeLinecap="round" strokeLinejoin="round" />
               </svg>

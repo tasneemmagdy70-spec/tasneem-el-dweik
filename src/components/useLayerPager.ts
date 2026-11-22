@@ -112,6 +112,8 @@ export function useLayerPager({
     const onStart = (e: TouchEvent) => {
       track = null;
       if (frozen() || e.touches.length > 1) return;
+      // a tap on a button (the orbit's ‹ ›, the layer bar…) is a tap — never let it become a swipe
+      if ((e.target as Element | null)?.closest?.("button")) return;
       if (!ours(-1) && !ours(1)) return;
       track = { x: e.touches[0].clientX, y: e.touches[0].clientY, axis: null };
     };
@@ -120,7 +122,7 @@ export function useLayerPager({
       if (e.touches.length > 1) return void (track = null);
       const dx = e.touches[0].clientX - track.x;
       const dy = e.touches[0].clientY - track.y;
-      if (!track.axis && Math.max(Math.abs(dx), Math.abs(dy)) > 8) track.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      if (!track.axis && Math.max(Math.abs(dx), Math.abs(dy)) > 12) track.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
       // at the top of "More work" a push upward is ordinary scrolling — let the page have it
       if (track.axis === "y" && !ours(dy < 0 ? 1 : -1)) return void (track = null);
       if (track.axis && e.cancelable) e.preventDefault();

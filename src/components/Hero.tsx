@@ -135,6 +135,11 @@ export default function Hero() {
   const depthText = useTransform(p, (v) => `−${String(Math.round(v * 360)).padStart(3, "0")}m`);
   const surfaceLight = useTransform(p, [0, 0.75], [1, 0.12]);
   const abyss = useTransform(p, [0, 1], [0, 0.75]);
+  // leaving the hero for "More work": the scene sinks back and fades while the next section rises,
+  // so this step reads as one more layer down — not as the page suddenly swapping
+  const { scrollYProgress: leave } = useScroll({ target: section, offset: ["end end", "end start"] });
+  const leaveOp = useTransform(leave, [0, 0.6], [1, 0]);
+  const leaveScale = useTransform(leave, [0, 0.6], [1, 0.92]);
 
   /* ── mobile choreography (all scroll-linked, so it's reversible) ──
      One focal point per moment:
@@ -306,7 +311,7 @@ export default function Hero() {
 
   return (
     <section ref={section} id="top" className="relative h-[400vh]">
-      <div ref={stage3d} className="sticky top-0 isolate h-[100svh] overflow-hidden">
+      <motion.div ref={stage3d} style={{ opacity: leaveOp, scale: leaveScale }} className="sticky top-0 isolate h-[100svh] overflow-hidden">
         {/* ── the water column ── */}
         <div aria-hidden className="absolute inset-0 -z-10 bg-paper">
           <motion.div
@@ -450,11 +455,13 @@ export default function Hero() {
                   aria-current={chapter === i ? "step" : undefined}
                   className="flex h-8 min-w-0 flex-1 items-center"
                 >
-                  <span
-                    className={`h-[2px] w-full rounded-full transition-all duration-500 ${
-                      i === chapter ? "bg-blue-glow shadow-[0_0_8px_rgb(var(--rgb-glow)/0.8)]" : i < chapter ? "bg-blue-glow/45" : "bg-white/15"
-                    }`}
-                  />
+                  {/* filled up to where you are: each step fills exactly one more segment */}
+                  <span className="relative h-[2px] w-full overflow-hidden rounded-full bg-white/15">
+                    <span
+                      className={`absolute inset-0 origin-left rounded-full bg-blue-glow transition-transform duration-500 ease-out ${i <= chapter ? "scale-x-100" : "scale-x-0"}`}
+                      style={{ transitionDelay: i <= chapter ? "0.15s" : "0s" }}
+                    />
+                  </span>
                 </button>
               ))}
             </span>
@@ -505,7 +512,7 @@ export default function Hero() {
         {/* ── the signature: x-ray lens over the surface ── */}
         {/* (desktop only: a lens needs a hovering cursor; on touch it was just another button) */}
         <XRay container={stage3d} enabled={!mobile && chapter === 0 && done && !reduce} />
-      </div>
+      </motion.div>
 
       <Loader visible={stage < STAGE.spark && !instant} running={stage === STAGE.loading} duration={LOAD_MS} instant={instant || quick} onSkip={skip} />
     </section>
@@ -1050,160 +1057,42 @@ const STEPS = [
 ];
 
 /**
- * The process as a connected path: a line grows from step to step on its own
- * as you land on the layer, each step lights up as the line
- * reaches it, and once it hits "Test & Iterate" a curve loops back to the start —
- * because the process never really ends, it goes round again.
+ * The process as a connected path, shown whole the moment you land: five steps on one
+ * line, nothing moving on its own (an animation you didn't start reads like the page
+ * doing something without you). The "it repeats" idea is said in words, at the end.
  */
 function ProcessBody() {
-  const base = useMotionValue(0);
-  useEffect(() => {
-    const c = animate(base, 1, { duration: 2.4, delay: 0.4, ease: "easeInOut" });
-    return () => c.stop();
-  }, [base]);
-  const line = useTransform(base, [0, 0.8], [0, 1]);
-  const loop = useTransform(base, [0.82, 1], [0, 1]);
-  const arrowIn = useTransform(loop, [0.85, 1], [0, 1]);
-  // the loop draws itself using its measured length (Motion's pathLength renders dotted here)
-  const loopPath = useRef<SVGPathElement>(null);
-  const loopLen = useRef(0);
-  const drawLoop = (v: number) => {
-    const el = loopPath.current;
-    if (el) el.style.strokeDashoffset = String(loopLen.current * (1 - v));
-  };
-  useMotionValueEvent(loop, "change", drawLoop);
-
-  // node centres, measured with offsets (immune to the reveal transforms)
-  const list = useRef<HTMLOListElement>(null);
-  const nodes = useRef<(HTMLSpanElement | null)[]>([]);
-  const [ys, setYs] = useState<number[]>([]);
-  useEffect(() => {
-    const ol = list.current;
-    if (!ol) return;
-    const measure = () =>
-      setYs(
-        nodes.current.map((n) => {
-          const li = n?.parentElement;
-          return n && li ? li.offsetTop + n.offsetTop + n.offsetHeight / 2 : 0;
-        }),
-      );
-    const ro = new ResizeObserver(measure);
-    ro.observe(ol);
-    return () => ro.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const el = loopPath.current;
-    if (!el) return;
-    loopLen.current = el.getTotalLength();
-    el.style.strokeDasharray = String(loopLen.current);
-    drawLoop(loop.get());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ys]);
-
-  const ready = ys.length === STEPS.length && ys[ys.length - 1] > ys[0];
-  const y0 = ready ? ys[0] : 0;
-  const yN = ready ? ys[ys.length - 1] : 1;
-  const frac = (i: number) => (ready ? (ys[i] - y0) / (yN - y0) : i / (STEPS.length - 1));
-
   return (
-    <ol ref={list} className="relative max-w-[32rem]">
-      {ready && (
-        <>
-          {/* the track, and the line that grows along it */}
-          <span aria-hidden className="absolute left-[15px] w-px bg-white/12" style={{ top: y0, height: yN - y0 }} />
-          <motion.span
-            aria-hidden
-            className="absolute left-[15px] w-px origin-top bg-linear-to-b from-blue-glow via-blue-bright to-sand shadow-[0_0_6px_rgb(var(--rgb-glow)/0.3)]"
-            style={{ top: y0, height: yN - y0, scaleY: line }}
-          />
-          {/* iterate: the loop back to the start */}
-          <svg aria-hidden className="pointer-events-none absolute left-0 top-0 overflow-visible" width="1" height="1">
-            <path
-              ref={loopPath}
-              d={`M 1 ${yN} C -26 ${yN - 10}, -26 ${y0 + 10}, 1 ${y0}`}
-              fill="none"
-              stroke="var(--color-sand)"
-              strokeWidth={1.2}
-              strokeLinecap="round"
-              opacity={0.85}
-            />
-            <motion.path
-              d={`M -4 ${y0 - 4} L 1 ${y0} L -4 ${y0 + 4}`}
-              fill="none"
-              stroke="var(--color-sand)"
-              strokeWidth={1.2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ opacity: arrowIn }}
-            />
-          </svg>
-          <motion.span aria-hidden className="absolute -left-[22px] font-mono text-[11px] text-sand" style={{ top: (y0 + yN) / 2 - 8, opacity: arrowIn }}>
-            ↺
-          </motion.span>
-        </>
-      )}
-      {STEPS.map(([t, d], i) => (
-        <ProcessStep
-          key={t}
-          n={i + 1}
-          title={t}
-          desc={d}
-          line={line}
-          at={frac(i)}
-          last={i === STEPS.length - 1}
-          nodeRef={(el) => void (nodes.current[i] = el)}
-        />
-      ))}
-    </ol>
+    <div className="max-w-[32rem]">
+      <ol className="relative">
+        {/* the path that joins the steps */}
+        <span aria-hidden className="absolute bottom-[15px] left-[15px] top-[15px] w-px bg-linear-to-b from-blue-glow via-blue-bright to-sand opacity-70" />
+        {STEPS.map(([t, d], i) => (
+          <RItem
+            key={t}
+            as="li"
+            className="relative grid grid-cols-[30px_1fr] gap-x-4 pb-[max(2.2svh,1rem)] last:pb-0 lg:pb-[clamp(0.55rem,2svh,1.4rem)]"
+          >
+            <span
+              className={`relative grid size-[30px] place-items-center rounded-full font-mono text-[10px] font-semibold ${
+                i === STEPS.length - 1 ? "bg-sand text-paper" : "bg-cta text-on-cta"
+              }`}
+            >
+              0{i + 1}
+            </span>
+            <span className="pt-[3px]">
+              <span className="block text-[0.98rem] font-medium leading-tight text-ink sm:text-[1.15rem]">{t}</span>
+              <span className="mt-1 block text-[0.84rem] leading-snug text-ink-soft sm:text-[0.98rem]">{d}</span>
+            </span>
+          </RItem>
+        ))}
+      </ol>
+      <RItem className="mt-3 flex items-center gap-2 pl-[46px] font-mono text-[10px] uppercase tracking-[0.2em] text-sand sm:text-[11px]">
+        <span aria-hidden>↺</span> Then round again, until it works
+      </RItem>
+    </div>
   );
 }
-
-function ProcessStep({
-  n,
-  title,
-  desc,
-  line,
-  at,
-  last,
-  nodeRef,
-}: {
-  n: number;
-  title: string;
-  desc: string;
-  line: MotionValue<number>;
-  at: number;
-  last: boolean;
-  nodeRef: (el: HTMLSpanElement | null) => void;
-}) {
-  // lights the moment the line arrives (the last step must finish exactly at the line's end)
-  const lit = useTransform(line, [Math.max(0, at - 0.04), Math.max(0.001, at)], [0, 1]);
-  const text = useTransform(line, [Math.max(0, at - 0.1), Math.max(0.001, at)], [0.2, 1]);
-  const x = useTransform(line, [Math.max(0, at - 0.1), Math.max(0.001, at)], [-6, 0]);
-  return (
-    <li className="relative grid grid-cols-[30px_1fr] gap-x-4 pb-[max(2.2svh,1rem)] last:pb-0 lg:pb-[clamp(0.55rem,2svh,1.4rem)]">
-      <span
-        ref={nodeRef}
-        className="relative grid size-[30px] place-items-center rounded-full border border-white/15 bg-paper font-mono text-[10px] text-ink-soft"
-      >
-        0{n}
-        <motion.span
-          style={{ opacity: lit }}
-          className={`absolute -inset-px grid place-items-center rounded-full font-mono text-[10px] font-semibold ${
-            last ? "bg-sand text-paper shadow-[0_0_10px_rgb(var(--rgb-sand)/0.3)]" : "bg-cta text-on-cta shadow-[0_0_10px_rgb(var(--rgb-bright)/0.3)]"
-          }`}
-        >
-          0{n}
-        </motion.span>
-      </span>
-      <motion.div style={{ opacity: text, x }} className="pt-[3px]">
-        <span className="block text-[0.98rem] font-medium leading-tight text-ink sm:text-[1.15rem]">{title}</span>
-        <span className="mt-1 block text-[0.84rem] leading-snug text-ink-soft sm:text-[0.98rem]">{desc}</span>
-      </motion.div>
-    </li>
-  );
-}
-
 const BODIES: Record<number, () => ReactNode> = { 1: WhyBody, 2: ProcessBody };
 
 function Arrow({ className = "" }: { className?: string }) {
