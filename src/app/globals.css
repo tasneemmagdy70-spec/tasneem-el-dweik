@@ -1,0 +1,162 @@
+@import "tailwindcss";
+
+/* Design tokens — "Beneath the Surface", dark / Midnight Royal */
+@theme {
+  --color-paper: #050a18; /* the deep */
+  --color-abyss: #03060f;
+  --color-surface: #0b1430; /* raised panels */
+  --color-ink: #e9eefa; /* primary text on dark */
+  --color-ink-soft: #8c99bc;
+  --color-blue: #1e3a8a; /* royal — fills */
+  --color-blue-deep: #0f1f5c;
+  --color-blue-bright: #4c72f0; /* royal — accents on dark */
+  --color-blue-glow: #8fa8ff;
+  --color-blue-soft: #16224a;
+  --color-sand: #d4b48c;
+  --color-cta: #3a5bd0; /* primary buttons: one flat royal blue, no gradient */
+  --color-cta-hover: #4566dc;
+  --color-on-cta: #ffffff; /* text/icons sitting on the blue buttons — white in both themes */
+  --color-available: #34d399;
+  --color-panel: #0a1430; /* cards, menus, inline panels */
+  --color-panel-deep: #071027;
+  /* the four element families (What I do) */
+  --color-fam-research: #d4b48c;
+  --color-fam-ui: #8fa8ff;
+  --color-fam-ai: #7dd3c0;
+  --color-fam-synth: #e9eefa;
+
+  --font-sans: var(--nf-inter), system-ui, sans-serif;
+  --font-serif: var(--nf-serif), Georgia, serif;
+  --font-script: var(--nf-script), cursive;
+  --font-mono: var(--nf-mono), ui-monospace, monospace;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* light & glow channels as "r g b", so any alpha can be applied: rgb(var(--rgb-glow) / 0.3) */
+:root {
+  --rgb-glow: 143 168 255; /* blue-glow */
+  --rgb-bright: 76 114 240; /* blue-bright */
+  --rgb-sand: 212 180 140;
+  --rgb-halo: 5 10 24; /* the background colour, for text halos and veils */
+  --rgb-shadow: 0 0 0;
+  --rgb-particle: 160 185 255;
+  --deep-fade: 0.6; /* how much of the blurred atom stays behind deep-layer copy (phone) */
+  --atom-core: #f4e2c6; /* the warm nucleus at the end of the dive */
+  /* effect strengths — light mode needs more of each to read on a pale ground */
+  --orbit-a: 0.11; /* the core's orbit shells */
+  --ring-a: 0.18; /* the hero atom's rings */
+  --dots-a: 0.07; /* the hero's dot grid */
+  --ambient-boost: 1; /* section light pools */
+  --particle-boost: 1; /* the drifting particles */
+  --atom-hot: #ffffff; /* the loader's white-hot centre */
+}
+
+/* ── Light theme: the same "Beneath the Surface" story, in daylight ──
+   Same hues, same roles: navy ink on cool paper, royal blue accents, sand warmth.
+   Accents are deepened so they keep their contrast on light ground. */
+html[data-theme="light"] {
+  --color-paper: #e8eefc; /* daylight through blue water, not plain white */
+  --color-abyss: #d3def8; /* deeper layers get bluer as you dive */
+  --color-surface: #ffffff;
+  --color-ink: #0c1633;
+  --color-ink-soft: #43507a;
+  --color-blue: #1e3a8a;
+  --color-blue-deep: #0f1f5c;
+  --color-blue-bright: #3a5bd0;
+  --color-blue-glow: #3452c9;
+  --color-blue-soft: #d2ddfa;
+  --color-sand: #80582a; /* ≥4.5:1 on daylight, even for small labels */
+  --color-cta: #3a5bd0;
+  --color-cta-hover: #2f4ec0;
+  --color-available: #0f9a6a;
+  --color-panel: #ffffff;
+  --color-panel-deep: #f1f5ff;
+  /* "white/10"-style lines and veils read as navy on light ground */
+  --color-white: #0c1633;
+  --color-fam-research: #9a6c35;
+  --color-fam-ui: #3452c9;
+  --color-fam-ai: #16907b;
+  --color-fam-synth: #0c1633;
+
+  --rgb-glow: 52 82 201;
+  --rgb-bright: 58 91 208;
+  --rgb-sand: 128 88 42;
+  --rgb-halo: 232 238 252;
+  --rgb-shadow: 15 25 60;
+  --rgb-particle: 58 91 208;
+  --deep-fade: 0.4;
+  --orbit-a: 0.32;
+  --ring-a: 0.42;
+  --dots-a: 0.16;
+  --ambient-boost: 2.6;
+  --particle-boost: 1.5;
+  --atom-core: #c08a48;
+  --atom-hot: #3a5bd0;
+
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--color-paper);
+  color-scheme: dark;
+}
+/* the switch between themes is a soft cross-fade, not a flash */
+html.theme-fade,
+html.theme-fade * {
+  transition:
+    background-color 0.45s ease,
+    border-color 0.45s ease,
+    color 0.45s ease,
+    fill 0.45s ease,
+    stroke 0.45s ease !important;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: var(--color-blue-bright);
+  color: var(--color-on-cta);
+}
+
+/* Visible keyboard focus everywhere */
+:focus-visible {
+  outline: 2px solid var(--color-blue-glow);
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+
+/* touch: the browser's own, momentum-friendly snap onto each featured project in The Core.
+   Proximity, so it only catches you when you stop near a project — never a hard lock. */
+@media (pointer: coarse) {
+  html {
+    scroll-snap-type: y proximity;
+  }
+}
+
+/* particles drifting up through the lower sections (DeepAmbient) */
+@keyframes deep-rise {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(12px, -160px, 0);
+  }
+}
+.deep-particle {
+  animation: deep-rise linear infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .deep-particle {
+    animation: none;
+  }
+}

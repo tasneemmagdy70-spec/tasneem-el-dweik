@@ -1,0 +1,6 @@
+# same line endings on every machine (Windows, Mac, Vercel's Linux)
+* text=auto eol=lf
+*.png binary
+*.webp binary
+*.pdf binary
+*.ttf binary
