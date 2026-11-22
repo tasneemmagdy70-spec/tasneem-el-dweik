@@ -130,6 +130,18 @@ body {
   overscroll-behavior-x: none;
 }
 
+/* phones & tablets: the layer you're in is lit; the layers still below wait, dimmed,
+   until they rise to you (set by the hero's useFlowLayer) */
+@media (max-width: 1023.98px) {
+  /* (the words dim, never the section's own colour — so the water keeps its depth) */
+  [data-layer] > * {
+    transition: opacity 0.6s ease;
+  }
+  [data-layer][data-dim] > * {
+    opacity: 0.3;
+  }
+}
+
 /* Visible keyboard focus everywhere */
 :focus-visible {
   outline: 2px solid var(--color-blue-glow);

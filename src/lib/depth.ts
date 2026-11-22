@@ -12,14 +12,33 @@ export const REST = [0, 0.3, 0.55, 1];
 export const SURFACE_LIFT = 0.08;
 
 export const LAYERS = [
-  { n: "01", name: "Surface", note: "Who I am" },
-  { n: "02", name: "The Why", note: "How I think" },
-  { n: "03", name: "Process", note: "How I work" },
-  { n: "04", name: "Selected work", note: "The strongest projects" },
-  { n: "05", name: "More work", note: "Earlier experiments", id: "work" },
-  { n: "06", name: "What I do", note: "Services & tools", id: "services" },
-  { n: "07", name: "Contact", note: "Let's talk", id: "contact" },
+  { n: "01", name: "Surface", note: "Who I am", depth: 0 },
+  { n: "02", name: "The Why", note: "How I think", depth: 120 },
+  { n: "03", name: "Process", note: "How I work", depth: 240 },
+  { n: "04", name: "Selected work", note: "The strongest projects", depth: 360 },
+  { n: "05", name: "More work", note: "Earlier experiments", id: "work", depth: 420 },
+  { n: "06", name: "What I do", note: "Services & tools", id: "services", depth: 480 },
+  { n: "07", name: "Contact", note: "Let's talk", id: "contact", depth: 540 },
 ] as const;
+
+/* ── phone & tablet: the layers are ordinary sections, one under the other ([data-layer]) ── */
+
+/** true when the page is laid out as a plain scroll (phone / tablet), not the pinned dive */
+export const isFlow = () => typeof document !== "undefined" && !!document.querySelector('section[data-layer="1"]');
+
+function flowSections() {
+  return [...document.querySelectorAll<HTMLElement>("[data-layer]")].sort((a, b) => Number(a.dataset.layer) - Number(b.dataset.layer));
+}
+
+/** the layer you're reading: the last one whose top has risen past the middle of the screen
+ *  (and the last layer once the page can't scroll any further) */
+export function flowLayer() {
+  const els = flowSections();
+  if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) return els.length - 1;
+  let i = 0;
+  for (const el of els) if (el.getBoundingClientRect().top <= window.innerHeight * 0.45) i = Number(el.dataset.layer);
+  return i;
+}
 
 const reduced = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -73,6 +92,14 @@ export function scrollToRaw(r: number) {
 
 /** Go to layer i (0-based, in LAYERS order). */
 export function goToLayer(i: number) {
+  if (isFlow()) {
+    if (i === 0) return glideTo(0);
+    const el = document.querySelector<HTMLElement>(`[data-layer="${i}"]`);
+    if (!el) return;
+    // layers 02–04 leave room for the layer bar themselves; the sections below start a bit higher
+    const top = el.getBoundingClientRect().top + window.scrollY - (i >= 4 ? 40 : 0);
+    return glideTo(Math.max(0, top));
+  }
   if (i < 4) return scrollToRaw(REST[i]);
   const id = (LAYERS[i] as { id?: string }).id;
   const el = id ? document.getElementById(id) : null;
@@ -81,6 +108,7 @@ export function goToLayer(i: number) {
 
 /** Which layer the reader is in right now. */
 export function currentLayer() {
+  if (isFlow()) return flowLayer();
   const y = window.scrollY;
   for (let i = LAYERS.length - 1; i >= 4; i--) {
     const id = (LAYERS[i] as { id?: string }).id;

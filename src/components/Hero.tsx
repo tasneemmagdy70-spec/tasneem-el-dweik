@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { animate, AnimatePresence, motion, useAnimationControls, useMotionValue, useMotionValueEvent, useScroll, useTransform, type MotionValue, type Variants } from "motion/react";
 import MagneticButton from "./MagneticButton";
 import Nucleus from "./Nucleus";
@@ -10,8 +11,10 @@ import { DrawPath } from "./DrawStroke";
 import { LOAD_MS, STAGE, useIntro, useIsDesktop } from "./useIntro";
 import Loader from "./Loader";
 import { FEATURED } from "@/lib/projects";
-import { LAYERS, RAW_STOPS, goToLayer } from "@/lib/depth";
+import { LAYERS, RAW_STOPS, flowLayer, goToLayer } from "@/lib/depth";
 import { useLayerPager } from "./useLayerPager";
+import { useSideSwipe } from "./useSideSwipe";
+import DeepAmbient from "./DeepAmbient";
 import { useTheme } from "@/lib/theme";
 import ProjectOrbit, { coreStage } from "./ProjectOrbit";
 import { CV_URL } from "@/lib/contact";
@@ -112,7 +115,16 @@ function useViewport(): [number, number] {
   return [w, h];
 }
 
+/**
+ * Desktop dives (one pinned scene, one gesture per layer). Phones & tablets read: the same
+ * layers as ordinary sections, one under the other, with the layer bar riding along on top.
+ */
 export default function Hero() {
+  const desktop = useIsDesktop();
+  return desktop === false ? <FlowHero /> : <PinnedHero />;
+}
+
+function PinnedHero() {
   const desktop = useIsDesktop();
   const { stage, instant, quick, skip, reduce } = useIntro(desktop);
   const shown = stage >= STAGE.reveal;
@@ -858,6 +870,7 @@ function SurfaceHeadline({
   y,
   onSize,
   onNext,
+  children,
 }: {
   shown: boolean;
   instant: boolean;
@@ -865,6 +878,8 @@ function SurfaceHeadline({
   y: MotionValue<number>;
   onSize: (h: number) => void;
   onNext: () => void;
+  /** what closes the first page (phones: the layer bar) — replaces the scroll invitation */
+  children?: ReactNode;
 }) {
   // report the block's height, so the first page lifts exactly enough to show all of it
   const ref = useRef<HTMLDivElement>(null);
@@ -941,7 +956,12 @@ function SurfaceHeadline({
         </a>
       </motion.div>
 
-      {/* only now: the invitation to dive into layer 02 — and a peek of what's down there */}
+      {children ? (
+        <motion.div {...enter(2)} className="pointer-events-auto mt-8 text-left sm:mt-10">
+          {children}
+        </motion.div>
+      ) : (
+      /* only now: the invitation to dive into layer 02 — and a peek of what's down there */
       <motion.button
         {...enter(2)}
         type="button"
@@ -956,6 +976,7 @@ function SurfaceHeadline({
           {PEEK[1]}
         </span>
       </motion.button>
+      )}
     </motion.div>
   );
 }
@@ -1118,5 +1139,245 @@ function Arrow({ className = "" }: { className?: string }) {
     <svg viewBox="0 0 16 16" className={className} fill="none" stroke="currentColor" strokeWidth={1.6}>
       <path d="M3 8h10M9 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+/* ═════════════ phone & tablet: the layers as one ordinary scroll ═════════════
+   The same seven layers, simply one under the other — scrolling moves the page exactly as
+   far as the thumb does, like anywhere else on the web. Two things keep the "depth":
+     · the layer bar closes the first page, then rides along under the header once it gets
+       there, always saying where you are (and filling one segment per layer, from 01)
+     · the layer you're in is lit; the ones still below wait, dimmed, until they reach you */
+
+const STICK = 72; // where the layer bar rides: 4.5rem, just under the logo, theme and menu
+const noop = () => () => {};
+
+/** Which layer is being read, and dims the layers below it (phones & tablets only). */
+function useFlowLayer() {
+  const [active, setActive] = useState(0);
+  useEffect(() => {
+    const below: [string, number][] = [
+      ["work", 4],
+      ["services", 5],
+      ["contact", 6],
+    ];
+    below.forEach(([id, n]) => document.getElementById(id)?.setAttribute("data-layer", String(n)));
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const a = flowLayer();
+      setActive(a);
+      document.querySelectorAll<HTMLElement>("[data-layer]").forEach((el) => {
+        if (Number(el.dataset.layer) > a) el.setAttribute("data-dim", "");
+        else el.removeAttribute("data-dim");
+      });
+    };
+    const queue = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", queue, { passive: true });
+    window.addEventListener("resize", queue);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", queue);
+      window.removeEventListener("resize", queue);
+      below.forEach(([id]) => {
+        const el = document.getElementById(id);
+        el?.removeAttribute("data-layer");
+        el?.removeAttribute("data-dim");
+      });
+    };
+  }, []);
+  return active;
+}
+
+function LayerRow({ active, depth }: { active: number; depth: MotionValue<string> }) {
+  return (
+    <div className="flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.22em] text-ink-soft sm:text-[10.5px]">
+      <span className="text-blue-glow">{LAYERS[active].n}</span>
+      {/* a fixed slot, so the bar never stretches when the name changes */}
+      <span className="w-[6.6rem] shrink-0 truncate whitespace-nowrap text-ink sm:w-[7.9rem]">{LAYERS[active].name}</span>
+      <span className="-my-3 flex min-w-0 flex-1 items-center gap-[3px]">
+        {LAYERS.map((l, i) => (
+          <button
+            key={l.name}
+            type="button"
+            onClick={() => goToLayer(i)}
+            aria-label={`${l.n} · ${l.name}`}
+            aria-current={active === i ? "step" : undefined}
+            className="flex h-8 min-w-0 flex-1 items-center"
+          >
+            {/* filled up to where you are: each new layer fills exactly one more segment */}
+            <span className="relative h-[2px] w-full overflow-hidden rounded-full bg-white/15">
+              <span
+                className={`absolute inset-0 origin-left rounded-full bg-blue-glow transition-transform duration-500 ease-out ${i <= active ? "scale-x-100" : "scale-x-0"}`}
+              />
+            </span>
+          </button>
+        ))}
+      </span>
+      <motion.span className="tabular-nums text-blue-glow">{depth}</motion.span>
+    </div>
+  );
+}
+
+/** In the page at the end of the first screen; once it rises to its place under the header it stays there. */
+function LayerBar({ active }: { active: number }) {
+  const slot = useRef<HTMLDivElement>(null);
+  const [stuck, setStuck] = useState(false);
+  const mounted = useSyncExternalStore(
+    noop,
+    () => true,
+    () => false,
+  );
+  useEffect(() => {
+    const check = () => {
+      const r = slot.current?.getBoundingClientRect();
+      if (r) setStuck(r.top <= STICK);
+    };
+    check();
+    window.addEventListener("scroll", check, { passive: true });
+    window.addEventListener("resize", check);
+    return () => {
+      window.removeEventListener("scroll", check);
+      window.removeEventListener("resize", check);
+    };
+  }, []);
+  const depth = useMotionValue(0);
+  useEffect(() => {
+    const c = animate(depth, LAYERS[active].depth, { duration: 0.9, ease });
+    return () => c.stop();
+  }, [active, depth]);
+  const depthText = useTransform(depth, (v) => `−${String(Math.round(v)).padStart(3, "0")}m`);
+
+  return (
+    <>
+      <nav ref={slot} aria-label="Layers" aria-hidden={stuck || undefined} style={{ visibility: stuck ? "hidden" : "visible" }}>
+        <LayerRow active={active} depth={depthText} />
+      </nav>
+      {/* (rendered into <body>: the first page's entrance animation transforms its ancestors,
+          and a transformed ancestor would pin "fixed" to itself instead of to the screen) */}
+      {mounted &&
+        createPortal(
+          <div className="fixed inset-x-0 top-0 z-40" style={{ visibility: stuck ? "visible" : "hidden" }}>
+            {/* a soft band of the page colour, so the words scrolling underneath never fight the bar */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-[7rem] bg-paper/85 backdrop-blur-md [mask-image:linear-gradient(to_bottom,black_78%,transparent)]"
+            />
+            <nav aria-label="Layers" aria-hidden={!stuck || undefined} className="relative px-5 pt-[4.5rem] sm:px-8">
+              <LayerRow active={active} depth={depthText} />
+            </nav>
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+}
+
+function FlowHero() {
+  const { stage, instant, quick, skip, reduce } = useIntro(false);
+  const shown = stage >= STAGE.reveal;
+  const [vw, vh] = useViewport();
+  // the same first page as before: portrait box, then the headline + actions right under it
+  const B = Math.min(1.3 * vw, 0.64 * vh);
+  const TOP = 80 + 0.12 * vh;
+  const tablet = vw >= 640;
+  const blockTop = TOP + 0.8 * B + (tablet ? 44 : 28);
+  const [blockH, setBlockH] = useState(0);
+  const still = useMotionValue(0);
+  const active = useFlowLayer();
+
+  // the work, in orbit: sideways to turn the projects, up/down is just the page
+  const [proj, setProj] = useState(0);
+  const sideDrag = useMotionValue(Number.NaN);
+  const [core, setCore] = useState<HTMLElement | null>(null);
+  useSideSwipe(
+    core,
+    (dir) => setProj((i) => Math.max(0, Math.min(FEATURED.length - 1, i + dir))),
+    (dx) => sideDrag.set(dx === null ? Number.NaN : dx),
+  );
+  // the orbit gathers as its section comes into view, and rests once it's far away
+  const coreShow = useMotionValue(0);
+  useEffect(() => {
+    if (!core) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.intersectionRatio >= 0.25) animate(coreShow, 1, { duration: reduce ? 0 : 0.9, ease });
+        else if (!e.isIntersecting) coreShow.set(0);
+      },
+      { threshold: [0, 0.25] },
+    );
+    io.observe(core);
+    return () => io.disconnect();
+  }, [core, coreShow, reduce]);
+
+  return (
+    <>
+      {/* 01 · Surface */}
+      <section id="top" data-layer="0" aria-label="Surface" className="relative overflow-hidden" style={{ height: blockTop + (blockH || 300) + 36 }}>
+        <div aria-hidden className="absolute inset-0 -z-10 bg-paper">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-12%,rgb(var(--rgb-bright)/0.38),transparent_70%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(rgb(var(--rgb-glow)/var(--dots-a))_1px,transparent_1px)] [background-size:28px_28px] [mask-image:radial-gradient(ellipse_70%_60%_at_60%_50%,black,transparent)]" />
+        </div>
+
+        <motion.div
+          className="pointer-events-none absolute inset-x-6 top-[calc(4.75rem+1.5svh)] z-20 text-center sm:inset-x-8"
+          initial={{ opacity: 0, y: 18, filter: "blur(8px)" }}
+          animate={shown ? { opacity: 1, y: 0, filter: "blur(0px)" } : { opacity: 0, y: 18, filter: "blur(8px)" }}
+          transition={{ duration: instant ? 0.4 : 1, delay: instant ? 0 : 0.15, ease }}
+        >
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-ink-soft sm:mb-3 sm:text-[11.5px]">Tasneem El-Dweik</p>
+          <p className="font-serif text-[clamp(2.3rem,5.6svh,3rem)] leading-[1] tracking-[-0.02em] text-ink sm:text-[clamp(3rem,6.2svh,4.25rem)] [text-shadow:0_2px_16px_rgb(var(--rgb-halo)/0.9)]">
+            UI/UX <span className="text-[0.7em] text-ink-soft">&amp;</span> Product
+            <br />
+            <span className="italic text-blue-glow">Designer</span>
+          </p>
+        </motion.div>
+
+        <div className="absolute left-[calc(50vw-min(65vw,32svh))] top-[calc(5rem+12svh)] z-10 w-[min(130vw,64svh)]">
+          <Nucleus stage={stage} instant={instant} reduce={reduce} compact labels={CHAPTERS[0].electrons} />
+        </div>
+
+        <SurfaceHeadline shown={shown} instant={instant} top={blockTop} y={still} onSize={setBlockH} onNext={() => goToLayer(1)}>
+          <LayerBar active={active} />
+        </SurfaceHeadline>
+      </section>
+
+      {/* 02 · The Why and 03 · Process — the water getting deeper */}
+      <div className="relative overflow-hidden bg-linear-to-b from-paper to-abyss">
+        <DeepAmbient lights={[{ color: "var(--color-blue-bright)", x: "80%", y: "20%", size: "30rem", opacity: 0.16 }, { color: "var(--color-blue-glow)", x: "10%", y: "75%", size: "28rem", opacity: 0.12 }]} particles={14} seed={3} />
+        {[1, 2].map((i) => {
+          const Body = BODIES[i];
+          return (
+            <motion.section
+              key={i}
+              data-layer={i}
+              aria-label={HEADS[i].name}
+              className="relative px-6 pb-6 pt-[7.5rem] sm:px-8 sm:pb-10"
+              variants={chapterV}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, amount: 0.15 }}
+            >
+              <RItem>
+                <h2 className="font-serif text-[clamp(2.3rem,5.6svh,2.9rem)] leading-[1] tracking-[-0.02em] text-ink sm:text-[clamp(3rem,6svh,4.25rem)]">{HEADS[i].title}</h2>
+              </RItem>
+              <div className="mt-[max(3svh,1.25rem)]">
+                <Body />
+              </div>
+            </motion.section>
+          );
+        })}
+      </div>
+
+      {/* 04 · Selected work — one screen, the projects turning sideways */}
+      <section ref={setCore} data-layer="3" aria-label="Selected work" className="relative touch-pan-y overflow-hidden bg-abyss" style={{ height: vh }}>
+        <ProjectOrbit index={proj} onIndex={setProj} drag={sideDrag} show={coreShow} enabled={active === 3} mobile vw={vw} vh={vh} onAll={() => goToLayer(4)} />
+      </section>
+
+      <Loader visible={stage < STAGE.spark && !instant} running={stage === STAGE.loading} duration={LOAD_MS} instant={instant || quick} onSkip={skip} />
+    </>
   );
 }
