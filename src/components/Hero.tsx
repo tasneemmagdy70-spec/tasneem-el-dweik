@@ -706,7 +706,7 @@ function MobileCopy({
   // including phones with a larger system font, where the copy grows taller than the space
   const [deepBox, setDeepBox] = useState<HTMLDivElement | null>(null);
   const [deepCopy, setDeepCopy] = useState<HTMLDivElement | null>(null);
-  const fit = useFitZoom(deepBox, deepCopy);
+  useFitZoom(deepBox, deepCopy);
   // the role rides up with the rest of the first page (one piece, one scroll),
   // fading only as it slides under the top bar
   const roleY = blockY;
@@ -757,7 +757,7 @@ function MobileCopy({
               exit="exit"
               className="pointer-events-auto [text-shadow:0_1px_12px_rgb(var(--rgb-halo)/0.9)]"
             >
-              <div ref={setDeepCopy} style={{ zoom: fit }}>
+              <div ref={setDeepCopy}>
                 <RItem i={0}>
                   <h2 className="font-serif text-[clamp(2.3rem,5.6svh,2.9rem)] leading-[1] tracking-[-0.02em] text-ink sm:text-[clamp(3rem,6svh,4.25rem)]">
                     {head.title}
@@ -784,19 +784,26 @@ function MobileCopy({
  * the box's safe centring lets it run on downward instead of over the header.
  */
 function useFitZoom(box: HTMLElement | null, content: HTMLElement | null) {
-  const [zoom, setZoom] = useState(1);
   const current = useRef(1);
+  const node = useRef<HTMLElement | null>(null);
   useLayoutEffect(() => {
+    node.current = content;
     if (!box || !content) return;
     const measure = () => {
-      // the rendered height includes the zoom in use, so divide it back out for the natural height
-      const natural = content.getBoundingClientRect().height / current.current;
-      if (!natural) return;
-      const next = Math.max(0.72, Math.min(1, (box.clientHeight - 4) / natural));
-      if (Math.abs(next - current.current) > 0.01) {
-        current.current = next;
-        setZoom(next);
-      }
+      const el = node.current;
+      if (!el) return;
+      // Measure the copy at its true size: switch the zoom off for an instant (same frame — nothing
+      // is painted in between), read the height, then set the zoom. Browsers disagree on whether a
+      // zoomed element reports its zoomed or unzoomed size; dividing one by the other compounded on
+      // some phones and the text kept re-shrinking (the "trembling" copy). This reading is the same
+      // everywhere, so the result is too — and setting the same value again changes nothing, so it
+      // settles after one pass.
+      el.style.zoom = "1";
+      const natural = el.getBoundingClientRect().height;
+      let next = natural ? Math.max(0.72, Math.min(1, (box.clientHeight - 4) / natural)) : 1;
+      if (Math.abs(next - current.current) <= 0.02) next = current.current; // small wobbles stay put
+      current.current = next;
+      el.style.zoom = String(next);
     };
     const ro = new ResizeObserver(measure);
     ro.observe(box);
@@ -804,7 +811,6 @@ function useFitZoom(box: HTMLElement | null, content: HTMLElement | null) {
     measure();
     return () => ro.disconnect();
   }, [box, content]);
-  return zoom;
 }
 
 /* ── reveal: on landing, a layer's items arrive one after another in well under a second —
