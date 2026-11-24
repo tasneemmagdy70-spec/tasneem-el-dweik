@@ -217,8 +217,8 @@ export default function Loader({
                     // before it starts — including the very first paint, before the page knows it's a
                     // phone — phones (which only ever get the short intro) already read 99
                     <>
-                      <span className="lg:hidden">99</span>
-                      <span className="hidden lg:inline">{String(pct).padStart(2, "0")}</span>
+                      <span className="count-quick lg:hidden">99</span>
+                      <span className="count-full hidden lg:inline">{String(pct).padStart(2, "0")}</span>
                     </>
                   )}</span>
                 <span className="mt-2 font-mono text-[11px] text-blue-glow">%</span>

@@ -321,11 +321,12 @@ export default function Hero() {
   // centre what the eye actually sees — face to arms — against the headline.
   //  layer 03: the atom crosses to the left and the copy to the right — a visible turn of the page.)
   const nucleusPose = [
-    { scale: 1, x: 0, y: Math.round(0.05 * vh) },
+    { scale: 1, x: 0, y: Math.round(0.05 * vh), opacity: 1 },
     // the same size and height in every reading layer — the photo is the constant
-    { scale: 1, x: 0, y: Math.round(0.05 * vh) },
-    { scale: 1, x: 0, y: Math.round(0.05 * vh) },
-    { scale: 0.78, x: desk.dx, y: desk.dy },
+    { scale: 1, x: 0, y: Math.round(0.05 * vh), opacity: 1 },
+    { scale: 1, x: 0, y: Math.round(0.05 * vh), opacity: 1 },
+    // the work: the folder takes the stage (beside the title), so the big atom steps away
+    { scale: 0.78, x: desk.dx, y: desk.dy, opacity: 0 },
   ][chapter];
 
   const next = CHAPTERS[chapter + 1]?.name;

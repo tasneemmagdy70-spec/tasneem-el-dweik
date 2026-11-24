@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { uiSound } from "@/lib/uiSound";
-import { animate, AnimatePresence, motion, useAnimationFrame, useMotionValue, useMotionValueEvent, useReducedMotion, type MotionValue } from "motion/react";
+import { animate, motion, useAnimationFrame, useMotionValue, useMotionValueEvent, useReducedMotion, type MotionValue } from "motion/react";
 import { FEATURED as PROJECTS } from "@/lib/projects";
 import ProjectCover from "./ProjectCover";
 import { ArrowUpRight } from "./icons";
@@ -22,7 +22,6 @@ import { BTN_PRIMARY, BTN_PRIMARY_ICON } from "@/lib/ui";
 
 const GOLDEN = 137.5 * (Math.PI / 180);
 const COVER = 632 / 808; // Behance cover ratio
-const ease = [0.16, 1, 0.3, 1] as const;
 const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const smooth = (t: number) => t * t * (3 - 2 * t);
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -73,28 +72,34 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
   const reduce = useReducedMotion();
   const N = PROJECTS.length;
   const stage = coreStage(vw, vh, mobile);
-  const { fx, top, bottom, tablet } = stage;
+  const { top, bottom, tablet } = stage;
+  let fx = stage.fx;
   let { CW, CH, CAPH, fy } = stage;
   const REST = tablet ? 0.28 : mobile ? 0.34 : 0.36; // an electron's size relative to the stage card
+  const left = tablet ? 40 : mobile ? 24 : Math.max(32, (vw - 1152) / 2 + 32);
 
   // Phones & tablets: one measured stack — title · card (cover + folder front) · controls — with
   // the same rhythm on every screen: a fixed breath under the title, a fixed gap to the controls,
   // and the card as large as what's left allows (never so large that anything touches).
   const titleBox = useRef<HTMLDivElement>(null);
   const [titleBottom, setTitleBottom] = useState(0);
+  const [titleRight, setTitleRight] = useState(0);
   useLayoutEffect(() => {
     const el = titleBox.current;
     if (!el) return;
-    const measure = () => setTitleBottom(el.offsetTop + el.offsetHeight);
+    const measure = () => {
+      setTitleBottom(el.offsetTop + el.offsetHeight);
+      setTitleRight(el.offsetLeft + el.offsetWidth);
+    };
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     measure();
     return () => ro.disconnect();
   }, []);
-  const TAB = tablet ? 30 : 26; // the folder's tab (above the folder, holding the number)
-  const PAD = tablet ? 10 : 8; // the folder's edge around the cover
-  const PH = tablet ? 192 : 152; // the folder's lower part: type, name, line, the action
-  const GAP_TOP = tablet ? 40 : 30; // title → card
+  const TAB = mobile && !tablet ? 26 : 30; // the folder's tab (above the folder, holding the number)
+  const PAD = mobile && !tablet ? 8 : 10; // the folder's edge around the cover
+  const PH = tablet ? 192 : mobile ? 152 : 176; // the folder's lower part: type, name, line, the action
+  const GAP_TOP = tablet ? 40 : mobile ? 30 : 28; // title → card
   const GAP_ROW = tablet ? 28 : 22; // card → controls
   const ROW = 48; // the controls row
   let rowTop = 0;
@@ -111,11 +116,32 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
     fy = folderTop + PAD + CH / 2;
     CAPH = PH;
     rowTop = folderTop + PAD + CH + PH + GAP_ROW + spare * 0.25; // (the last 35% stays under the controls)
+  } else {
+    // Desktop: the same folder + controls. It stands beside the title when there's room (so it can
+    // rise to just under the header and be big), and under the title, centred, when there isn't.
+    const fixed = TAB + PAD + PH + GAP_ROW + ROW;
+    const sizeUnder = (tb: number) => Math.max(240, Math.min(440, vw * 0.3, (vh - 28 - tb - GAP_TOP - fixed) / COVER + PAD * 2));
+    const header = 92;
+    const tRight = titleRight || left + 470;
+    let tb = header;
+    let cw = sizeUnder(tb);
+    let cx = Math.max(vw / 2, tRight + 48 + cw / 2);
+    if (cx + cw / 2 > vw - 240) {
+      // no room beside it (the depth rail lives on the right): sit under the title instead
+      tb = titleBottom || vh * 0.13 + 124;
+      cw = sizeUnder(tb);
+      cx = vw / 2;
+    }
+    CW = cw;
+    CH = (CW - PAD * 2) * COVER;
+    fx = cx;
+    const spare = Math.max(0, vh - 28 - tb - GAP_TOP - (CH + fixed));
+    const folderTop = tb + GAP_TOP + TAB + spare * 0.4;
+    fy = folderTop + PAD + CH / 2;
+    CAPH = PH;
+    rowTop = folderTop + PAD + CH + PH + GAP_ROW + spare * 0.25;
   }
-  const capTop = mobile ? fy + CH / 2 + 8 : fy + CH / 2 + 16;
-  // the caption never gets narrower than its button needs, even when a short phone shrinks the card
-  const capW = mobile && !tablet ? Math.min(vw - 48, Math.max(CW, 300)) : CW;
-  const left = tablet ? 40 : mobile ? 24 : Math.max(32, (vw - 1152) / 2 + 32);
+  const capTop = fy + CH / 2 + 8; // the folder's lower part
 
   // the shells ride around the whole stage block (card + caption), tilted like the atom's own
   const sy = (fy - CH / 2 + capTop + CAPH - 16) / 2;
@@ -138,11 +164,13 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
   const sh = sw * COVER + (mobile ? 0 : 22);
   // zones the electrons pass *behind* (they fade there instead of covering text)
   const veils = [
-    { l: fx - CW / 2 - (mobile ? 8 : 24), r: fx + CW / 2 + (mobile ? 8 : 24), t: capTop - 10, b: capTop + CAPH - 8 }, // caption (phones: the folder's front)
+    { l: fx - CW / 2 - 8, r: fx + CW / 2 + 8, t: capTop - 10, b: capTop + CAPH - 8 }, // the folder's lower part
     { l: 0, r: mobile ? vw : left + 470, t: 0, b: mobile ? top - 8 : vh * 0.13 + 124 }, // title
     { l: 0, r: vw, t: bottom + 6, b: vh }, // "All projects"
-    // phones: the controls — an electron never crosses them (over the card itself they simply pass behind)
-    ...(mobile ? [{ l: 0, r: vw, t: rowTop - 6, b: rowTop + ROW + 6 }] : []), // (the controls row)
+    // the controls — an electron never crosses them (over the card itself they simply pass behind)
+    { l: 0, r: vw, t: rowTop - 6, b: rowTop + ROW + 6 },
+    // desktop: the depth rail on the right — the orbit never writes over it
+    ...(mobile ? [] : [{ l: vw - 230, r: vw, t: 0, b: vh }]),
   ];
 
   const cards = useRef<(HTMLDivElement | null)[]>([]);
@@ -221,28 +249,48 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
     held.current = Math.max(-1.2, Math.min(1.2, off));
   });
 
-  // the first visit: the project on stage leans left and back — "there's more this way" —
-  // and a short note says how (once per visitor)
+  // mouse: press on a project and drag it sideways — it follows the hand, like a finger on a phone
+  const dragged = useRef(false);
+  const mouseDrag = (e: React.PointerEvent) => {
+    if (e.pointerType !== "mouse" || e.button !== 0 || !enabled) return;
+    const x0 = e.clientX;
+    let dx = 0;
+    dragged.current = false;
+    const move = (ev: PointerEvent) => {
+      dx = ev.clientX - x0;
+      if (Math.abs(dx) > 6) {
+        dragged.current = true;
+        drag.set(dx);
+      }
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      if (!dragged.current) return;
+      drag.set(Number.NaN);
+      if (Math.abs(dx) > 60) {
+        const next = Math.max(0, Math.min(N - 1, indexRef.current + (dx < 0 ? 1 : -1)));
+        if (next !== indexRef.current) onIndex(next);
+      }
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
+  // the first visit: the project on stage leans left and back — "there's more this way" (no words)
   const lean = useMotionValue(0);
-  const [hintOn, setHint] = useState(false);
-  const hint = hintOn && index === 0; // turning a project is the lesson learned — the note steps aside
   useEffect(() => {
     if (!enabled || reduce) return;
     try {
       if (localStorage.getItem(HINT_KEY)) return;
     } catch {}
     const t1 = window.setTimeout(() => {
-      setHint(true);
       animate(lean, [0, -34, 0, -16, 0], { duration: 1.6, times: [0, 0.3, 0.6, 0.8, 1], ease: "easeInOut" });
       try {
         localStorage.setItem(HINT_KEY, "1");
       } catch {}
     }, 900);
-    const t2 = window.setTimeout(() => setHint(false), 4200);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
+    return () => clearTimeout(t1);
   }, [enabled, reduce, lean]);
   // a soft water drop each time a different project settles in the centre (only inside The Core)
   const lastLocked = useRef(-1);
@@ -304,7 +352,7 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
       const sc = lerp(REST * (0.88 + 0.12 * depth), 1, focus) * (0.85 + 0.15 * arrive);
       const el = cards.current[i];
       if (el) {
-        el.style.transform = `translate(${(x - CW / 2).toFixed(1)}px, ${(y - CH / 2 - (mobile ? PAD : 0)).toFixed(1)}px) scale(${sc.toFixed(4)})`;
+        el.style.transform = `translate(${(x - CW / 2).toFixed(1)}px, ${(y - CH / 2 - PAD).toFixed(1)}px) scale(${sc.toFixed(4)})`;
         el.style.opacity = (arrive * lerp(sOp, 1, focus)).toFixed(3);
         el.style.zIndex = String(focus > 0.5 ? 60 + Math.round(focus * 20) : 15 + Math.round(depth * 20));
         el.style.pointerEvents = enabled && arrive > 0.6 ? "auto" : "none";
@@ -314,7 +362,7 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
 
       // phones & tablets: the project in focus opens like a folder — its tab and text appear, the
       // cover lifts a little out of it, then very slowly pushes in (once it has settled)
-      if (mobile) {
+      {
         const open = smooth(clamp((focus - 0.5) / 0.5));
         const fr2 = fronts.current[i];
         if (fr2) {
@@ -351,7 +399,6 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
     setActive((cur) => (cur === front ? cur : front));
   });
 
-  const p = PROJECTS[active];
 
   return (
     <div className="pointer-events-none absolute inset-0" aria-label="Projects in orbit">
@@ -418,7 +465,6 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
             className="absolute left-0 top-0 origin-center opacity-0 will-change-transform"
             style={{ width: CW }}
           >
-            {mobile ? (
               <a
                 href={proj.href}
                 target="_blank"
@@ -432,7 +478,16 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
                 }}
                 aria-label={isActive ? `${proj.name} — open case study on Behance` : `Show ${proj.name}`}
                 tabIndex={enabled && isActive ? 0 : -1}
-                className="folder relative block text-left transition-transform duration-200 active:scale-[0.985]"
+                onPointerDown={(e) => mouseDrag(e)}
+                onClickCapture={(e) => {
+                  if (dragged.current) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dragged.current = false;
+                  }
+                }}
+                draggable={false}
+                className="folder relative block cursor-grab select-none text-left transition-transform duration-200 active:scale-[0.985] active:cursor-grabbing"
               >
                 {/* the tab, with the project's number, and the soft inside corner where it meets the folder */}
                 <span
@@ -485,174 +540,12 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
                   <span className="text-blue-glow">{String(i + 1).padStart(2, "0")}</span> {proj.name}
                 </span>
               </a>
-            ) : (
-            <a
-              href={proj.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              // picking a side card already bubbles when it arrives in the centre
-              data-sound={isActive ? undefined : "own"}
-              onClick={(e) => {
-                if (!isActive) {
-                  e.preventDefault();
-                  onIndex(i);
-                }
-              }}
-              aria-label={isActive ? `${proj.name} — open case study on Behance` : `Show ${proj.name}`}
-              tabIndex={enabled ? 0 : -1}
-              className="group block transition-transform duration-200 active:scale-[0.98]"
-            >
-              <span
-                className={`@container relative block overflow-hidden rounded-xl border shadow-[0_24px_60px_-20px_rgb(var(--rgb-shadow)/0.85)] transition-[border-color,box-shadow] duration-500 ${
-                  isActive
-                    ? "border-transparent shadow-[0_0_16px_-6px_rgb(var(--rgb-glow)/0.35),0_24px_60px_-28px_rgb(var(--rgb-shadow)/0.85)]"
-                    : "border-white/15 group-hover:border-white/40"
-                }`}
-                style={{ height: CH }}
-              >
-                {/* cover — zooms gently on hover (desktop) / pushes in with the scroll (mobile) */}
-                <span
-                  ref={(el) => void (imgs.current[i] = el)}
-                  className={`absolute inset-0 block will-change-transform ${mobile ? "" : "transition-transform duration-700 ease-out-expo group-hover:scale-105"}`}
-                >
-                  <ProjectCover project={proj} index={i} sizes={`${Math.round(CW)}px`} />
-                </span>
-                {/* the frame in the brand blue */}
-                <svg aria-hidden className="pointer-events-none absolute inset-0 size-full overflow-visible" viewBox={`0 0 ${CW} ${CH}`}>
-                  <rect
-                    ref={(el) => void (frames.current[i] = el)}
-                    x={1.5}
-                    y={1.5}
-                    width={FR.w}
-                    height={FR.h}
-                    rx={FR.r}
-                    fill="none"
-                    stroke="currentColor"
-                    className="text-blue-glow"
-                    strokeWidth={3}
-                    style={{ strokeDasharray: PER, strokeDashoffset: PER, opacity: 0 }}
-                  />
-                </svg>
-              </span>
-              {/* electron label (desktop): set large so it reads at orbit size; sits below the card's box */}
-              {!mobile && (
-                <span
-                  ref={(el) => void (labels.current[i] = el)}
-                  className="absolute inset-x-0 top-full mt-[0.4em] block truncate font-mono uppercase tracking-[0.18em] text-ink-soft"
-                  style={{ fontSize: 10 / REST }}
-                >
-                  <span className="text-blue-glow">{String(i + 1).padStart(2, "0")}</span> {proj.name}
-                </span>
-              )}
-            </a>
-            )}
           </div>
         );
       })}
 
-      {/* ‹ › beside the card: says, without words, that the work turns sideways (desktop) */}
-      {!mobile && (
-        [
-          [-1, "Previous project"],
-          [1, "Next project"],
-        ] as const
-      ).map(([dir, label]) => {
-        const can = dir < 0 ? index > 0 : index < N - 1;
-        const phone = mobile && !tablet;
-        const dot = phone ? 36 : 44; // the visible circle
-        const hit = 48; // the finger's target is always bigger than what you see
-        // phone: centred in the margin beside the card; wider screens: a little off the card's edge
-        const off = phone ? Math.max(hit / 2, (vw - CW) / 4) : CW / 2 + (mobile ? 36 : 44);
-        const cx = phone ? (dir < 0 ? off : vw - off) : fx + dir * off;
-        return (
-          <motion.button
-            key={dir}
-            type="button"
-            aria-label={label}
-            aria-disabled={!can}
-            onClick={() => can && onIndex(index + dir)}
-            tabIndex={enabled ? 0 : -1}
-            className={`group absolute z-[96] grid touch-manipulation place-items-center ${enabled ? "pointer-events-auto" : ""} ${can ? "" : "cursor-default"}`}
-            style={{ left: cx - hit / 2, top: fy - hit / 2, width: hit, height: hit, opacity: show }}
-            animate={hint && dir > 0 ? { scale: [1, 1.15, 1, 1.15, 1] } : { scale: 1 }}
-            transition={{ duration: 1.6 }}
-          >
-            <span
-              className={`grid place-items-center rounded-full border bg-panel/70 backdrop-blur transition-[opacity,border-color,color] duration-300 ${
-                can ? "border-white/20 text-ink group-hover:border-blue-glow/60 group-hover:text-blue-glow group-active:scale-95" : "border-white/10 text-ink opacity-30"
-              }`}
-              style={{ width: dot, height: dot }}
-            >
-              <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden>
-                <path d={dir < 0 ? "M10 3.5 5.5 8l4.5 4.5" : "M6 3.5 10.5 8 6 12.5"} strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-          </motion.button>
-        );
-      })}
-
-      {/* first visit: how to turn the work (desktop — on a phone the peeking cards say it) */}
-      <AnimatePresence>
-        {hint && !mobile && (
-          <motion.div
-            key="hint"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 6 }}
-            transition={{ duration: 0.4, ease }}
-            className="absolute z-[97] -translate-x-1/2 whitespace-nowrap rounded-full border border-white/15 bg-panel-deep/85 px-3.5 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink backdrop-blur"
-            style={{ left: fx, top: fy + CH / 2 - 48 }}
-          >
-            {mobile ? "← Swipe for more projects →" : "← → or the arrows for more projects"}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* the caption: always in the same place, under the stage (desktop — phones carry it in the card) */}
-      {!mobile && (
-      <motion.div className="absolute z-[90]" style={{ left: fx - capW / 2, top: capTop, width: capW, opacity: show }}>
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={active}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.35, ease }}
-          >
-            <p className="truncate font-mono text-[9.5px] uppercase tracking-[0.2em] text-ink-soft sm:text-[11.5px] lg:text-[9.5px]">
-              <span className="text-sand">{String(active + 1).padStart(2, "0")}</span>
-              <span className="mx-2 text-ink-soft/40">/</span>
-              {p.meta}
-            </p>
-            <p className="mt-1.5 font-serif text-[1.75rem] leading-none text-ink sm:mt-2 sm:text-[2.75rem] lg:mt-1.5 lg:text-[2rem]">{p.name}</p>
-            <p className="mt-1.5 truncate text-[0.88rem] text-ink-soft sm:mt-2 sm:text-[1.1rem] lg:mt-1.5 lg:text-[0.88rem]">{p.what}</p>
-            <div className="mt-3.5 flex items-center gap-3 sm:mt-5 lg:mt-3.5">
-              <a
-                href={p.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                tabIndex={enabled ? 0 : -1}
-                className={`${BTN_PRIMARY} ${
-                  enabled ? "pointer-events-auto" : ""
-                }`}
-              >
-                <span className="relative">Open case study</span>
-                <span className={BTN_PRIMARY_ICON}>
-                  <span className="relative block size-3.5 overflow-hidden">
-                    <ArrowUpRight className="absolute inset-0 size-full transition-transform duration-500 ease-out-expo group-hover:-translate-y-full group-hover:translate-x-full" />
-                    <ArrowUpRight className="absolute inset-0 size-full -translate-x-full translate-y-full transition-transform duration-500 ease-out-expo group-hover:translate-x-0 group-hover:translate-y-0" />
-                  </span>
-                </span>
-              </a>
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-soft sm:text-[11px] lg:text-[10px]">on Behance</span>
-            </div>
-          </motion.div>
-        </AnimatePresence>
-      </motion.div>
-      )}
-
-      {/* phones & tablets: one clear control row under the card — big arrows, where you are, how many */}
-      {mobile && (
+      {/* one clear control row under the card — big arrows, where you are, how many */}
+      {(
         <motion.div
           className="absolute z-[96] flex -translate-x-1/2 items-center gap-5"
           style={{ left: fx, top: rowTop, opacity: show }}
@@ -679,9 +572,6 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
         className={`absolute bottom-[max(3.5svh,1rem)] z-[95] flex items-center gap-5 sm:bottom-[max(4svh,1.5rem)] sm:gap-6 lg:bottom-[max(3.5svh,1rem)] lg:gap-5 ${mobile ? "right-6 sm:right-8" : ""}`}
         style={{ opacity: show, left: mobile ? undefined : left }}
       >
-        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink-soft tabular-nums sm:text-[12px] lg:text-[10px]">
-          <span className="text-sand">{String(active + 1).padStart(2, "0")}</span> / {String(N).padStart(2, "0")}
-        </span>
         {/* phone: the way on, as a quiet line (the bottom-left corner belongs to "Let's talk") */}
         {mobile ? (
           <button
@@ -709,7 +599,7 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
   );
 }
 
-/** Phones & tablets: a big, plain arrow under the card (48px, clear border) — never on the image. */
+/** A big, plain arrow under the card (48px, clear border) — never on the image. */
 function OrbitArrow({ dir, can, enabled, onGo }: { dir: 1 | -1; can: boolean; enabled: boolean; onGo: () => void }) {
   return (
     <button

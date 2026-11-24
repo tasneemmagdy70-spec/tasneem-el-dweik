@@ -183,11 +183,24 @@ body {
   --folder: color-mix(in oklab, var(--color-blue-bright) 24%, var(--color-panel));
   filter: drop-shadow(0 18px 28px rgb(var(--rgb-shadow) / 0.55));
 }
+[data-theme="light"] .folder {
+  /* daylight: a near-white folder, so it stands off the pale-blue page */
+  --folder: color-mix(in oklab, var(--color-blue-bright) 7%, #ffffff);
+  filter: drop-shadow(0 16px 26px rgb(var(--rgb-shadow) / 0.28));
+}
 .folder-fill {
   background: var(--folder);
 }
 .folder-notch {
   background: radial-gradient(circle at 100% 0, transparent 15.5px, var(--folder) 16px);
+}
+
+/* the short intro (a return visit, marked before first paint): the loader reads 99 at once */
+[data-intro="quick"] .count-quick {
+  display: inline !important;
+}
+[data-intro="quick"] .count-full {
+  display: none !important;
 }
 
 /* Visible keyboard focus everywhere */
