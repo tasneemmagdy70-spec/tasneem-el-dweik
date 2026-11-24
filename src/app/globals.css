@@ -135,7 +135,7 @@ body {
    and trims a little, so its right edge ends before the rail. Wide screens: no change. */
 @media (min-width: 1024px) {
   .atom-clear {
-    --nr: max(0px, min(172px, calc(748px - 50vw)));
+    --nr: max(0px, min(184px, calc(760px - 50vw)));
     --nl: min(40px, calc(var(--nr) / 2));
     margin-left: calc(-1 * var(--nl));
     margin-right: var(--nr);
@@ -143,35 +143,35 @@ body {
   }
 }
 
-/* Phones & tablets: readable small print. The little uppercase labels (layer bar, captions,
-   tags, "next" hints) were set in the mono at 9–10px with wide letter-spacing — fine as texture
-   on a big screen, hard to read on a phone. Here they become Inter, at least 12px, letters
-   closer together. Desktop keeps its mono. */
+/* Readable small print, on every screen size. The little uppercase labels (layer bar, captions,
+   tags, "next" hints, the orbiting skills) were set in the mono at 9–11px with wide
+   letter-spacing — texture more than text. They're now Inter, at least 12px, letters closer. */
+.font-mono {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  letter-spacing: 0.06em !important;
+}
+.font-mono.text-\[8px\],
+.font-mono.text-\[9px\],
+.font-mono.text-\[9\.5px\],
+.font-mono.text-\[10px\],
+.font-mono.text-\[10\.5px\],
+.font-mono.text-\[11px\],
+.font-mono.text-\[11\.5px\],
+.font-mono.text-\[0\.66rem\] {
+  font-size: 12px !important;
+}
+/* the softer (secondary) text, a step clearer: next to the white it read as almost off.
+   White still leads; the hierarchy is the same, just legible. */
+.text-ink-soft {
+  color: #aab6d6;
+}
+[data-theme="light"] .text-ink-soft {
+  color: #364270;
+}
+
+/* Phones & tablets only: the drifting dots stay, at under half the speed */
 @media (max-width: 1023.98px) {
-  .font-mono {
-    font-family: var(--font-sans);
-    font-weight: 500;
-    letter-spacing: 0.06em !important;
-  }
-  .font-mono.text-\[8px\],
-  .font-mono.text-\[9px\],
-  .font-mono.text-\[9\.5px\],
-  .font-mono.text-\[10px\],
-  .font-mono.text-\[10\.5px\],
-  .font-mono.text-\[11px\],
-  .font-mono.text-\[11\.5px\],
-  .font-mono.text-\[0\.66rem\] {
-    font-size: 12px !important;
-  }
-  /* the softer (secondary) text, a step brighter: on a phone screen the original read as almost
-     off next to the white. White still leads; the hierarchy is the same, just legible. */
-  .text-ink-soft {
-    color: #aab6d6;
-  }
-  [data-theme="light"] .text-ink-soft {
-    color: #364270;
-  }
-  /* the drifting dots stay, at under half the speed */
   .deep-particle {
     animation-duration: 45s !important;
   }
