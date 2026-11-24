@@ -204,6 +204,9 @@ export default function Hero() {
   const blockY = useTransform([mDock, drop], ([d, dr]: number[]) => d * dr);
   // the face belongs to the surface only
   const portrait = useTransform(p, [0.222, 0.255], [1, 0]);
+  // desktop: the face stays through Surface, The Why and Process (only the words around it change),
+  // and steps away only when the atom moves centre-stage for the work
+  const deskPortrait = useTransform(p, [0.72, 0.76], [1, 0]);
   // the depth bar starts at "02 · The Why": the first screen and its headline are one moment
   const readoutIn = useTransform(p, [0.24, 0.27], [0, 1]);
   // deeper layers (mobile): the atom becomes atmosphere — blurred, dimmed, wordless
@@ -318,8 +321,9 @@ export default function Hero() {
   //  layer 03: the atom crosses to the left and the copy to the right — a visible turn of the page.)
   const nucleusPose = [
     { scale: 1, x: 0, y: Math.round(0.05 * vh) },
-    { scale: 1.06, x: 0, y: 0 },
-    { scale: 0.94, x: desk.swap, y: -6 },
+    // the same size and height in every reading layer — the photo is the constant
+    { scale: 1, x: 0, y: Math.round(0.05 * vh) },
+    { scale: 1, x: desk.swap, y: Math.round(0.05 * vh) },
     { scale: 0.78, x: desk.dx, y: desk.dy },
   ][chapter];
 
@@ -383,7 +387,7 @@ export default function Hero() {
                 compact={desktop === false}
                 labels={CHAPTERS[chapter].electrons}
                 labelBoost={mobile ? mBoost : 1}
-                portrait={portrait}
+                portrait={mobile ? portrait : deskPortrait}
                 words={mobile ? mWords : dWords}
               />
             </motion.div>
