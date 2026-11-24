@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Corinthia, Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { THEME_BOOT } from "@/lib/theme-boot";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({
   variable: "--nf-inter",
@@ -60,7 +61,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* applies the saved theme before first paint — no flash of the wrong one */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* privacy-friendly visit counts (no cookies, no personal data) — Vercel → Analytics */}
+        <Analytics />
+      </body>
     </html>
   );
 }
