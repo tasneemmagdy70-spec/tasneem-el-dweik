@@ -15,7 +15,7 @@ export const LAYERS = [
   { n: "01", name: "Surface", note: "Who I am" },
   { n: "02", name: "The Why", note: "How I think" },
   { n: "03", name: "Process", note: "How I work" },
-  { n: "04", name: "Selected work", note: "The strongest projects" },
+  { n: "04", name: "Best work", note: "The strongest projects" },
   { n: "05", name: "More work", note: "Earlier experiments", id: "work" },
   { n: "06", name: "What I do", note: "Services & tools", id: "services" },
   { n: "07", name: "Contact", note: "Let's talk", id: "contact" },

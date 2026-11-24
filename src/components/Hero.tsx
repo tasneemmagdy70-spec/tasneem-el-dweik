@@ -27,7 +27,7 @@ const ease = [0.16, 1, 0.3, 1] as const;
 // (see useLayerPager). The projects in The Core turn sideways — they never use the scroll.
 
 /** One line per layer, for the "next" peek at the bottom of the screen. */
-const PEEK: Record<number, string> = { 1: "Every surface hides a reason.", 2: "Layers, not guesses.", 3: "Work in orbit." };
+const PEEK: Record<number, string> = { 1: "Every surface hides a reason.", 2: "Layers, not guesses.", 3: "My best work, in orbit." };
 
 const CHAPTERS = [
   {
@@ -58,7 +58,7 @@ const CHAPTERS = [
     ],
   },
   {
-    name: "Selected work",
+    name: "Best work",
     depth: 360,
     electrons: [
       ["NOVU", "Sana'a"],
@@ -997,12 +997,12 @@ const HEADS: Record<number, { n: string; name: string; title: ReactNode }> = {
   },
   3: {
     n: "04",
-    name: "Selected work",
+    name: "Best work",
     title: (
       <>
-        Work in
+        My best work,
         <br />
-        <span className="italic text-blue-glow">orbit</span>.
+        <span className="italic text-blue-glow">in orbit</span>.
       </>
     ),
   },

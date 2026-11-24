@@ -67,13 +67,12 @@ type Props = {
 };
 
 const HINT_KEY = "ed-orbit-hint";
-const GAP = 14; // phones & tablets: space between neighbouring cards in the carousel
 
 export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobile, vw, vh, onAll }: Props) {
   const reduce = useReducedMotion();
   const N = PROJECTS.length;
   const { CW, CH, CAPH, fx, fy, top, bottom, tablet } = coreStage(vw, vh, mobile);
-  const REST = tablet ? 0.25 : mobile ? 0.3 : 0.36; // an electron's size relative to the stage card
+  const REST = tablet ? 0.28 : mobile ? 0.34 : 0.36; // an electron's size relative to the stage card
   const capTop = fy + CH / 2 + 16;
   // the caption never gets narrower than its button needs, even when a short phone shrinks the card
   const capW = mobile && !tablet ? Math.min(vw - 48, Math.max(CW, 300)) : CW;
@@ -100,9 +99,11 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
   const sh = sw * COVER + (mobile ? 0 : 22);
   // zones the electrons pass *behind* (they fade there instead of covering text)
   const veils = [
-    { l: mobile ? 0 : fx - CW / 2 - 24, r: mobile ? vw : fx + CW / 2 + 24, t: capTop - 10, b: capTop + CAPH - 8 }, // caption
+    { l: fx - CW / 2 - (mobile ? 8 : 24), r: fx + CW / 2 + (mobile ? 8 : 24), t: capTop - 10, b: capTop + CAPH - 8 }, // caption (phones: the folder's front)
     { l: 0, r: mobile ? vw : left + 470, t: 0, b: mobile ? top - 8 : vh * 0.13 + 124 }, // title
     { l: 0, r: vw, t: bottom + 6, b: vh }, // "All projects"
+    // phones: the folder's tab — an electron never crosses it (over the card itself they simply pass behind)
+    ...(mobile ? [{ l: fx - CW / 2 - 8, r: fx + CW / 2 + 8, t: fy - CH / 2 - 44, b: fy - CH / 2 + 6 }] : []), // (just the tab's band)
   ];
 
   const cards = useRef<(HTMLDivElement | null)[]>([]);
@@ -110,6 +111,11 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
   const trails = useRef<(SVGLineElement | null)[]>([]);
   const frames = useRef<(SVGRectElement | null)[]>([]);
   const imgs = useRef<(HTMLSpanElement | null)[]>([]);
+  // phones & tablets — the folder: its tab, the sheet (cover) that lifts out, the front (text)
+  const tabs = useRef<(HTMLSpanElement | null)[]>([]);
+  const sheets = useRef<(HTMLSpanElement | null)[]>([]);
+  const fronts = useRef<(HTMLSpanElement | null)[]>([]);
+  const focusSince = useRef<number[]>([]);
   const shellsG = useRef<SVGGElement>(null);
   const spin = useRef(0);
   const idle = useRef(false);
@@ -143,8 +149,7 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
       animate(at, indexRef.current, { duration: reduce ? 0 : 0.55, ease: [0.33, 1, 0.68, 1] });
       return;
     }
-    // (phones: the card moves exactly with the finger — one card width per card)
-    let off = -dx / (mobile ? CW + GAP : vw * 0.6);
+    let off = -dx / (vw * 0.6);
     const base = at.get();
     const lo = -base;
     const hi = N - 1 - base;
@@ -206,29 +211,6 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
     const a = at.get() + held.current;
     const nudge = lean.get();
 
-    // Phones & tablets: a plain carousel — the project in focus in the middle, its neighbours
-    // peeking in at the edges (the clearest "there's more, swipe"), nothing else orbiting.
-    if (mobile) {
-      PROJECTS.forEach((_, i) => {
-        const d = i - a;
-        const ad = Math.abs(d);
-        const arrive = smooth(clamp(vis * 1.6));
-        const x = fx + d * (CW + GAP) + nudge * Math.max(0, 1 - ad);
-        const sc = 1 - 0.06 * Math.min(1, ad);
-        const op = ad < 1 ? 1 - 0.5 * ad : Math.max(0, 0.5 - (ad - 1) * 0.5);
-        const el = cards.current[i];
-        if (el) {
-          el.style.transform = `translate(${(x - CW / 2).toFixed(1)}px, ${(fy - CH / 2).toFixed(1)}px) scale(${sc.toFixed(4)})`;
-          el.style.opacity = (arrive * op).toFixed(3);
-          el.style.zIndex = String(60 - Math.round(ad * 10));
-          el.style.pointerEvents = enabled && ad < 1.5 ? "auto" : "none";
-        }
-      });
-      const front = Math.max(0, Math.min(N - 1, Math.round(a)));
-      setActive((cur) => (cur === front ? cur : front));
-      return;
-    }
-
     let front = 0;
     let best = -1;
     PROJECTS.forEach((_, i) => {
@@ -245,7 +227,7 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
       const oy = sy + ex * Math.sin(r) + ey * Math.cos(r);
       const depth = (Math.sin(th) + 1) / 2; // lower half of the orbit = nearer
       ox = clamp(ox, sw * 0.2, vw - sw * 0.2); // may peek off the edge, never vanish
-      let sOp = mobile ? 0.5 + 0.3 * depth : 0.55 + 0.3 * depth;
+      let sOp = mobile ? 0.72 + 0.2 * depth : 0.55 + 0.3 * depth;
       // passing behind the caption / title / bottom bar: fade instead of covering words
       for (const v of veils) {
         const ix = Math.max(0, Math.min(ox + sw / 2, v.r) - Math.max(ox - sw / 2, v.l));
@@ -266,6 +248,28 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
       }
       const lb = labels.current[i];
       if (lb) lb.style.opacity = (1 - focus).toFixed(3);
+
+      // phones & tablets: the project in focus opens like a folder — its tab and text appear, the
+      // cover lifts a little out of it, then very slowly pushes in (once it has settled)
+      if (mobile) {
+        const open = smooth(clamp((focus - 0.5) / 0.5));
+        const tb = tabs.current[i];
+        if (tb) tb.style.opacity = open.toFixed(3);
+        const fr2 = fronts.current[i];
+        if (fr2) {
+          fr2.style.opacity = open.toFixed(3);
+          fr2.style.transform = `translateY(${((1 - open) * 10).toFixed(1)}px)`;
+        }
+        const now = performance.now();
+        if (focus > 0.98) focusSince.current[i] ??= now;
+        else if (focus < 0.6) delete focusSince.current[i];
+        const since = focusSince.current[i];
+        const push = since !== undefined && !reduce ? smooth(clamp((now - since) / 6000)) : 0;
+        const sh2 = sheets.current[i];
+        if (sh2) sh2.style.transform = `translateY(${(-7 * open).toFixed(1)}px)`;
+        const im = imgs.current[i];
+        if (im) im.style.transform = `scale(${(1 + 0.06 * push).toFixed(4)})`;
+      }
 
       // the frame draws itself as the project takes the stage (like the orbits in the loader)
       const draw = smooth(clamp((focus - 0.55) / 0.45));
@@ -300,13 +304,13 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
         <p className="mb-2.5 hidden items-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em] text-blue-glow lg:flex">
           <span>04</span>
           <span className="h-px w-8 bg-blue-glow/50" />
-          <span className="text-ink-soft">Selected work</span>
+          <span className="text-ink-soft">Featured case studies</span>
         </p>
         <h2 className="font-serif text-[clamp(2rem,min(4.4vw,6svh),3.4rem)] sm:text-[clamp(3.25rem,8.5vw,5rem)] lg:text-[clamp(2rem,min(4.4vw,6svh),3.4rem)] leading-none tracking-[-0.02em] text-ink [text-shadow:0_2px_18px_rgb(var(--rgb-halo)/0.9)]">
-          Work in <span className="italic text-blue-glow">orbit</span>.
+          My best work, <span className="italic text-blue-glow">in orbit</span>.
         </h2>
         <p className="mt-2 text-[0.85rem] leading-snug text-ink-soft sm:mt-3 sm:text-[1.1rem] lg:mt-2 lg:text-[0.85rem]">
-          Every project circles one nucleus — <span className="text-ink">the why</span>.
+          Five case studies that show <span className="text-ink">how I think</span> — research to final UI.
         </p>
       </motion.div>
 
@@ -368,15 +372,25 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
                 }}
                 aria-label={isActive ? `${proj.name} — open case study on Behance` : `Show ${proj.name}`}
                 tabIndex={enabled && isActive ? 0 : -1}
-                className="block overflow-hidden rounded-2xl border border-white/12 bg-panel shadow-[0_24px_50px_-22px_rgb(var(--rgb-shadow)/0.9)] transition-transform duration-200 active:scale-[0.985]"
+                className="relative block transition-transform duration-200 active:scale-[0.985]"
               >
-                <span className="relative block overflow-hidden" style={{ height: CH }}>
-                  <ProjectCover project={proj} index={i} sizes={`${Math.round(CW)}px`} />
+                {/* the folder's tab: number + kind */}
+                <span
+                  ref={(el) => void (tabs.current[i] = el)}
+                  aria-hidden
+                  className="absolute -top-[26px] left-3 flex h-[27px] max-w-[75%] items-center gap-1.5 truncate rounded-t-xl border border-b-0 border-white/15 bg-panel px-3 font-mono text-[10px] uppercase text-ink-soft"
+                  style={{ opacity: 0 }}
+                >
+                  <span className="text-sand">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="truncate">{proj.meta.split("·")[0].trim()}</span>
                 </span>
-                <span className="block border-t border-white/10 px-4 pb-3.5 pt-3 sm:px-5 sm:pb-5 sm:pt-4">
-                  <span className="block truncate font-mono text-[10px] uppercase text-ink-soft">
-                    <span className="text-sand">{String(i + 1).padStart(2, "0")}</span> · {proj.meta}
-                  </span>
+                {/* the folder's front: the words and the action (only for the project in focus) */}
+                <span
+                  ref={(el) => void (fronts.current[i] = el)}
+                  className="absolute inset-x-0 top-[calc(100%-14px)] block rounded-b-2xl rounded-tr-2xl border border-white/15 bg-panel px-4 pb-3.5 pt-[1.6rem] shadow-[0_24px_50px_-22px_rgb(var(--rgb-shadow)/0.9)] sm:px-5 sm:pb-5 sm:pt-[1.9rem]"
+                  style={{ opacity: 0 }}
+                >
+                  <span className="block truncate font-mono text-[10px] uppercase text-ink-soft">{proj.meta}</span>
                   <span className="mt-1 block truncate font-serif text-[1.6rem] leading-none text-ink sm:mt-1.5 sm:text-[2.2rem]">{proj.name}</span>
                   <span className="mt-1 block truncate text-[0.88rem] text-ink-soft sm:mt-1.5 sm:text-[1.05rem]">{proj.what}</span>
                   <span className="mt-2.5 inline-flex items-center gap-2.5 rounded-full bg-cta py-1.5 pl-4 pr-1.5 text-[0.85rem] font-medium text-on-cta sm:mt-4 sm:py-2 sm:pl-5 sm:pr-2 sm:text-[1rem]">
@@ -385,6 +399,41 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
                       <ArrowUpRight className="size-3.5" />
                     </span>
                   </span>
+                </span>
+                {/* the sheet: the cover, which lifts a little out of the folder when it's the one in focus */}
+                <span
+                  ref={(el) => void (sheets.current[i] = el)}
+                  className="relative block overflow-hidden rounded-xl border border-white/15 shadow-[0_18px_40px_-18px_rgb(var(--rgb-shadow)/0.9)] will-change-transform"
+                  style={{ height: CH }}
+                >
+                  <span ref={(el) => void (imgs.current[i] = el)} className="absolute inset-0 block will-change-transform">
+                    <ProjectCover project={proj} index={i} sizes={`${Math.round(CW)}px`} />
+                  </span>
+                  {/* the frame in the brand blue, drawn as the project takes the stage */}
+                  <svg aria-hidden className="pointer-events-none absolute inset-0 size-full overflow-visible" viewBox={`0 0 ${CW} ${CH}`}>
+                    <rect
+                      ref={(el) => void (frames.current[i] = el)}
+                      x={1.5}
+                      y={1.5}
+                      width={FR.w}
+                      height={FR.h}
+                      rx={FR.r}
+                      fill="none"
+                      stroke="currentColor"
+                      className="text-blue-glow"
+                      strokeWidth={3}
+                      style={{ strokeDasharray: PER, strokeDashoffset: PER, opacity: 0 }}
+                    />
+                  </svg>
+                </span>
+                {/* as an electron: its number + name, so the orbit reads as "more projects" */}
+                <span
+                  ref={(el) => void (labels.current[i] = el)}
+                  aria-hidden
+                  className="absolute inset-x-0 top-full mt-[0.35em] block truncate text-center font-mono uppercase text-ink"
+                  style={{ fontSize: 11 / REST }}
+                >
+                  <span className="text-blue-glow">{String(i + 1).padStart(2, "0")}</span> {proj.name}
                 </span>
               </a>
             ) : (
