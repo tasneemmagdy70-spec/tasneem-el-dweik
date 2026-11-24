@@ -98,9 +98,13 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
   }, []);
   const TAB = mobile && !tablet ? 26 : 30; // the folder's tab (above the folder, holding the number)
   const PAD = mobile && !tablet ? 8 : 10; // the folder's edge around the cover
-  const PH = tablet ? 192 : mobile ? 152 : 176; // the folder's lower part: type, name, line, the action
+  // the folder's lower part (type, name, line, the action): a planned height per size — and if its
+  // content ever needs more (a larger system font, browser zoom), the measured height wins, so the
+  // words and the button are never squeezed or cut
+  const [bodyH, setBodyH] = useState(0);
+  const PH = Math.max(tablet ? 192 : mobile ? 152 : 196, bodyH);
   const GAP_TOP = tablet ? 40 : mobile ? 30 : 28; // title → card
-  const GAP_ROW = tablet ? 28 : 22; // card → controls
+  const GAP_ROW = tablet ? 28 : mobile ? 22 : 30; // card → controls
   const ROW = 48; // the controls row
   let rowTop = 0;
   if (mobile) {
@@ -120,7 +124,7 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
     // Desktop: the same folder + controls. It stands beside the title when there's room (so it can
     // rise to just under the header and be big), and under the title, centred, when there isn't.
     const fixed = TAB + PAD + PH + GAP_ROW + ROW;
-    const sizeUnder = (tb: number) => Math.max(240, Math.min(440, vw * 0.3, (vh - 28 - tb - GAP_TOP - fixed) / COVER + PAD * 2));
+    const sizeUnder = (tb: number) => Math.max(240, Math.min(440, vw * 0.3, (vh - 44 - tb - GAP_TOP - fixed) / COVER + PAD * 2));
     const header = 92;
     const tRight = titleRight || left + 470;
     let tb = header;
@@ -135,7 +139,7 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
     CW = cw;
     CH = (CW - PAD * 2) * COVER;
     fx = cx;
-    const spare = Math.max(0, vh - 28 - tb - GAP_TOP - (CH + fixed));
+    const spare = Math.max(0, vh - 44 - tb - GAP_TOP - (CH + fixed));
     const folderTop = tb + GAP_TOP + TAB + spare * 0.4;
     fy = folderTop + PAD + CH / 2;
     CAPH = PH;
@@ -186,6 +190,15 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
   const spin = useRef(0);
   const idle = useRef(false);
   const [active, setActive] = useState(0);
+  useLayoutEffect(() => {
+    const el = fronts.current[active];
+    if (!el) return;
+    const measure = () => setBodyH((h) => (Math.abs(el.offsetHeight - h) > 1 ? el.offsetHeight : h));
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    measure();
+    return () => ro.disconnect();
+  }, [active]);
   // where the stage is between projects (eases to `index` on every turn)
   // (an unhurried in-out turn: the hand-over should read as a calm orbit, not a flick)
   const at = useMotionValue(index);
@@ -512,12 +525,12 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
                   </span>
                   <span
                     ref={(el) => void (fronts.current[i] = el)}
-                    className="flex flex-col px-2 pb-3 pt-3 sm:px-3 sm:pb-4 sm:pt-4"
-                    style={{ height: PH, opacity: 0 }}
+                    className="flex flex-col px-2 pb-3 pt-3 sm:px-3 sm:pb-4 sm:pt-4 lg:px-3 lg:pb-4 lg:pt-4"
+                    style={{ minHeight: PH, opacity: 0 }}
                   >
                     <span className="block truncate font-mono text-[10px] uppercase text-ink-soft">{proj.meta}</span>
-                    <span className="mt-1 block truncate font-serif text-[1.5rem] leading-none text-ink sm:text-[2rem]">{proj.name}</span>
-                    <span className="mt-1 block truncate text-[0.9rem] text-ink-soft sm:text-[1.05rem]">{proj.what}</span>
+                    <span className="mt-1 block truncate font-serif text-[1.5rem] leading-none text-ink sm:text-[2rem] lg:text-[1.75rem]">{proj.name}</span>
+                    <span className="mt-1 block truncate text-[0.9rem] text-ink-soft sm:text-[1.05rem] lg:text-[0.95rem]">{proj.what}</span>
                     {/* the one thing to do here: a real, primary button — nothing like the quiet arrows below */}
                     <span className="mt-auto flex items-center gap-3">
                       <span className={BTN_PRIMARY}>
