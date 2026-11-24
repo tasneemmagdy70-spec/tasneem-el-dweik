@@ -243,7 +243,7 @@ export default function Hero() {
   };
   // one gesture = one layer
   // (no half-step on phones any more: one swipe from the first screen lands straight on The Why)
-  useLayerPager({ enabled: done, lift: false, onSide: turn, onSideDrag: dragSide });
+  useLayerPager({ enabled: done, lift: false, onSide: turn, onSideDrag: dragSide, canSide: () => chapterRef.current === 3 });
 
   // First screen: if nothing has moved for a few seconds, the page lifts a little and settles
   // back — the content itself shows that it scrolls. Twice at most, and never once you've moved.

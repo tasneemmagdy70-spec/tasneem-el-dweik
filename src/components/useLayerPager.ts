@@ -21,20 +21,25 @@ export function useLayerPager({
   lift,
   onSide,
   onSideDrag,
+  canSide,
 }: {
   enabled: boolean;
   /** phone surface: rest once with the first page lifted (only when it doesn't fit as it is) */
   lift: boolean;
   onSide: (dir: 1 | -1) => boolean;
   onSideDrag: (dx: number | null) => boolean;
+  /** is there something to turn sideways right now (the work is the layer in view)? */
+  canSide: () => boolean;
 }) {
   const liftRef = useRef(lift);
   const sideRef = useRef(onSide);
   const dragRef = useRef(onSideDrag);
+  const canSideRef = useRef(canSide);
   useEffect(() => {
     liftRef.current = lift;
     sideRef.current = onSide;
     dragRef.current = onSideDrag;
+    canSideRef.current = canSide;
   });
 
   useEffect(() => {
@@ -52,6 +57,11 @@ export function useLayerPager({
       // there is always the page's own scroll — never a pull back up
       if (y < last - 40) return true;
       return y <= last + 2 && dir < 0;
+    };
+    /** the work is on screen and can turn sideways (not further down the page) */
+    const sideOk = () => {
+      const ys = stops();
+      return canSideRef.current() && window.scrollY < ys[ys.length - 1] + window.innerHeight * 0.4;
     };
     const step = (dir: 1 | -1) => {
       const ys = stops();
@@ -139,7 +149,9 @@ export function useLayerPager({
       if (frozen() || e.touches.length > 1) return;
       // a tap on a button (the orbit's ‹ ›, the layer bar…) is a tap — never let it become a swipe
       if ((e.target as Element | null)?.closest?.("button")) return;
-      if (!ours(-1) && !ours(1)) return;
+      // the work turns sideways wherever it's on screen — even when the page sits a few pixels past
+      // its resting point (a touch of native scroll, the address bar moving) — but never further down
+      if (!ours(-1) && !ours(1) && !sideOk()) return;
       // still moving from the last swipe: the finger takes over from here, aiming past where it was going
       const ys = stops();
       const target = isGliding() && heading !== null ? heading : null;
@@ -159,6 +171,7 @@ export function useLayerPager({
         track.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
         // resting on The Core, a push downward is ordinary scrolling into "More work" — the page's own
         if (track.axis === "y" && !ours(dy < 0 ? 1 : -1)) return void (track = null);
+        if (track.axis === "x" && !ours(-1) && !ours(1) && !sideOk()) return void (track = null);
       }
       const dt = e.timeStamp - track.lt;
       if (track.axis === "x") {
