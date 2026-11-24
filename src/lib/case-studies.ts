@@ -26,7 +26,13 @@ export type CaseStudy = {
     components: Figure; // the components sheet (shown cropped)
   };
   /** the final screens, exported from the Figma file, grouped by platform */
-  screens: { mobile: Figure[]; web: Figure[]; dashboard: Figure[] };
+  screens: {
+    /** mobile, as user flows: each a few screens in the order you meet them */
+    mobile: { title: string; note: string; shots: Figure[] }[];
+    /** web size and dashboard, as one collection each — the first screen leads */
+    web: Figure[];
+    dashboard: Figure[];
+  };
   impact: { value: string; label: string }[];
 };
 
@@ -39,7 +45,7 @@ export const CASE_STUDIES: CaseStudy[] = [
     name: "NOVU",
     tagline: "A guided path into tech: one roadmap, an AI mentor, real practice.",
     behance: "https://www.behance.net/gallery/254132483/NOVU-AI-Powered-Tech-Career-Roadmap-Platform",
-    chips: ["UX research · UI design", "Mobile · Web · Dashboard", "ITI graduation project"],
+    chips: ["UX research", "UI design", "Mobile app", "Web", "Admin dashboard", "AI mentor", "Gamification", "Design system", "Usability testing", "ITI graduation project"],
     readTime: "2 min read",
     cover: { src: `${IMG}/cover.webp`, w: 1400, h: 788, alt: "NOVU — Learn Tech. Build Your Future. The NOVU app on a phone." },
     problem: {
@@ -79,19 +85,50 @@ export const CASE_STUDIES: CaseStudy[] = [
     },
     screens: {
       mobile: [
-        { src: `${IMG}/screens/m-home.webp`, w: 750, h: 1624, alt: "Home: the learner's roadmap, level by level." },
-        { src: `${IMG}/screens/m-mentor.webp`, w: 750, h: 1624, alt: "NOVA, the AI mentor, asking what brings the learner to the app." },
-        { src: `${IMG}/screens/m-quiz.webp`, w: 750, h: 1624, alt: "A timed quiz question with four answers." },
-        { src: `${IMG}/screens/m-streak.webp`, w: 750, h: 1624, alt: "Streak calendar: current and best streak." },
-        { src: `${IMG}/screens/m-practice.webp`, w: 750, h: 1624, alt: "Practice hub: challenges in progress, by module." },
+        {
+          title: "Getting started",
+          note: "From first launch to a mentor that asks what you need.",
+          shots: [
+            { src: `${IMG}/screens/m-splash.webp`, w: 750, h: 1624, alt: "Splash screen with the NOVU logo." },
+            { src: `${IMG}/screens/m-onboarding.webp`, w: 750, h: 1624, alt: "Onboarding: from confusion to clarity." },
+            { src: `${IMG}/screens/m-signup.webp`, w: 750, h: 1624, alt: "Create account." },
+            { src: `${IMG}/screens/m-mentor.webp`, w: 750, h: 1624, alt: "NOVA, the AI mentor, asking what brings you here." },
+          ],
+        },
+        {
+          title: "Learning path",
+          note: "A roadmap, a track, a lesson, then a quiz to prove it.",
+          shots: [
+            { src: `${IMG}/screens/m-home.webp`, w: 750, h: 1624, alt: "Home: the roadmap, level by level." },
+            { src: `${IMG}/screens/m-track.webp`, w: 750, h: 1624, alt: "Track details with its levels and courses." },
+            { src: `${IMG}/screens/m-lesson.webp`, w: 750, h: 1624, alt: "A video lesson with notes and discussion." },
+            { src: `${IMG}/screens/m-quiz.webp`, w: 750, h: 1624, alt: "A timed quiz question." },
+          ],
+        },
+        {
+          title: "Practice & rewards",
+          note: "Challenges, streaks and badges that keep learners coming back.",
+          shots: [
+            { src: `${IMG}/screens/m-practice.webp`, w: 750, h: 1624, alt: "Practice hub: challenges in progress." },
+            { src: `${IMG}/screens/m-streak.webp`, w: 750, h: 1624, alt: "Streak calendar." },
+            { src: `${IMG}/screens/m-reward.webp`, w: 750, h: 1624, alt: "Claim the weekly reward." },
+            { src: `${IMG}/screens/m-achieve.webp`, w: 750, h: 1624, alt: "Achievements and earned badges." },
+          ],
+        },
       ],
       web: [
-        { src: `${IMG}/screens/w-home.webp`, w: 1440, h: 1024, alt: "NOVU web app: the roadmap with your progress beside it." },
-        { src: `${IMG}/screens/w-lesson.webp`, w: 1440, h: 1024, alt: "NOVU web app: a video lesson with notes and discussion." },
+        { src: `${IMG}/screens/w-home.webp`, w: 1440, h: 1024, alt: "Web: the roadmap with your progress beside it." },
+        { src: `${IMG}/screens/w-lesson.webp`, w: 1440, h: 1024, alt: "Web: a video lesson." },
+        { src: `${IMG}/screens/w-quiz.webp`, w: 1440, h: 1024, alt: "Web: a quiz with instant feedback." },
+        { src: `${IMG}/screens/w-profile.webp`, w: 1440, h: 1024, alt: "Web: profile, tracks and projects." },
+        { src: `${IMG}/screens/w-achieve.webp`, w: 1440, h: 1024, alt: "Web: achievements and badges." },
       ],
       dashboard: [
-        { src: `${IMG}/screens/d-overview.webp`, w: 1440, h: 1024, alt: "Admin dashboard: users, active learners and popular paths." },
-        { src: `${IMG}/screens/d-paths.webp`, w: 1440, h: 1024, alt: "Admin dashboard: managing career paths and their status." },
+        { src: `${IMG}/screens/d-overview.webp`, w: 1440, h: 1024, alt: "Dashboard: users, learners and popular paths." },
+        { src: `${IMG}/screens/d-paths.webp`, w: 1440, h: 1024, alt: "Dashboard: managing career paths." },
+        { src: `${IMG}/screens/d-63.webp`, w: 1440, h: 1024, alt: "Dashboard: the roadmap builder." },
+        { src: `${IMG}/screens/d-72.webp`, w: 1440, h: 1024, alt: "Dashboard: learners and their progress." },
+        { src: `${IMG}/screens/d-73.webp`, w: 1440, h: 1024, alt: "Dashboard: subscriptions and plans." },
       ],
     },
     impact: [

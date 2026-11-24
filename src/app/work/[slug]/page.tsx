@@ -52,6 +52,9 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
   const nextProject = FEATURED[(at + 1) % FEATURED.length];
   const nextHref = nextProject.caseStudy ?? nextProject.href;
   const nextExternal = !nextProject.caseStudy;
+  const prevProject = FEATURED[(at - 1 + FEATURED.length) % FEATURED.length];
+  const prevHref = prevProject.caseStudy ?? prevProject.href;
+  const prevExternal = !prevProject.caseStudy;
 
   return (
     <div className="relative min-h-screen bg-paper text-ink">
@@ -66,24 +69,24 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         <CaseProgress />
       </header>
 
-      <main>
-        {/* ── the opening: back, what it is (left) and the problem it solves (right) ── */}
-        <section className={`${GUTTER} pb-16 pt-8 sm:pt-12 lg:pb-24 lg:pt-14`}>
-          <div className="mx-auto max-w-6xl">
-            <Link
-              href="/#best-work"
-              className="group/back -ml-1 inline-flex min-h-11 items-center gap-3 rounded-full pr-3 text-[0.92rem] text-ink-soft transition-colors hover:text-ink"
-            >
-              <span className="grid size-10 place-items-center rounded-full border border-white/15 transition-[border-color,transform] duration-300 group-hover/back:-translate-x-0.5 group-hover/back:border-blue-glow/60 group-active/back:scale-95">
-                <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M13 8H3M7.5 3.5 3 8l4.5 4.5" />
-                </svg>
-              </span>
-              Back to projects
-            </Link>
+      {/* ── back to the projects: a floating arrow, there wherever you are on the page ── */}
+      <Link
+        href="/#best-work"
+        aria-label="Back to projects"
+        title="Back to projects"
+        className="fixed bottom-5 left-5 z-40 grid size-12 place-items-center rounded-full border border-white/15 bg-panel/80 text-ink shadow-[0_12px_30px_-12px_rgba(0,0,0,0.7)] backdrop-blur-md transition-[border-color,transform,color] duration-300 hover:-translate-x-0.5 hover:border-blue-glow/60 hover:text-blue-glow active:scale-95 sm:bottom-8 sm:left-8"
+      >
+        <svg viewBox="0 0 16 16" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M13 8H3M7.5 3.5 3 8l4.5 4.5" />
+        </svg>
+      </Link>
 
-            <div className="mt-8 grid gap-10 sm:mt-10 md:grid-cols-2 md:items-end md:gap-10 lg:gap-16">
-              <Reveal>
+      <main>
+        {/* ── the opening: what it is (left) and the problem it solves (right) ── */}
+        <section className={`${GUTTER} pb-16 pt-12 sm:pt-16 lg:pb-24 lg:pt-20`}>
+          <div className="mx-auto max-w-6xl">
+            <div className="grid gap-10 md:grid-cols-2 md:items-end md:gap-10 lg:gap-16">
+              <Reveal className="min-w-0">
                 <p className="flex items-center gap-3 font-mono text-[11px] uppercase text-blue-glow">
                   <span>
                     {c.n} / {String(FEATURED.length).padStart(2, "0")}
@@ -93,13 +96,20 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
                 </p>
                 <h1 className="mt-4 font-serif text-[clamp(3.5rem,9vw,6rem)] leading-[0.92] tracking-[-0.02em]">{c.name}</h1>
                 <p className="mt-5 max-w-md text-[1.1rem] leading-snug text-ink-soft sm:text-[1.2rem]">{c.tagline}</p>
-                <ul className="mt-7 flex flex-wrap gap-2">
-                  {c.chips.map((x) => (
-                    <li key={x} className="rounded-full border border-white/12 px-3.5 py-1.5 text-[0.85rem] text-ink">
-                      {x}
-                    </li>
-                  ))}
-                </ul>
+                {/* what the project covers — a slow loop of chips, faded at both edges */}
+                <div className="case-marquee-wrap mt-7 overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)]">
+                  <ul className="case-marquee flex w-max gap-2" aria-label="What the project covers">
+                    {[...c.chips, ...c.chips].map((x, i) => (
+                      <li
+                        key={i}
+                        aria-hidden={i >= c.chips.length || undefined}
+                        className="whitespace-nowrap rounded-full border border-white/12 px-3.5 py-1.5 text-[0.85rem] text-ink"
+                      >
+                        {x}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </Reveal>
 
               <Reveal delay={120}>
@@ -187,7 +197,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
             <Reveal className="md:col-span-5">
               <Spec title="Grid & icons">
                 <div className="flex items-end gap-3">
-                  <GridOnScreen figure={c.screens.mobile[2]} cols={4} className="w-[26%]" label="4 col" />
+                  <GridOnScreen figure={c.screens.mobile[1].shots[3]} cols={4} className="w-[26%]" label="4 col" />
                   <GridOnScreen figure={c.screens.web[1]} cols={12} className="flex-1" label="12 col" />
                 </div>
                 <ul className="mt-6 grid grid-cols-8 gap-1.5" aria-label="Some of NOVU's 40+ icons">
@@ -222,34 +232,41 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
 
         {/* ── final screens: phones in a row, then the web app and the dashboard in browser frames ── */}
         <Band label="Final screens" n="03">
-          <Sub title="Mobile app" />
-          <SnapStrip className="lg:grid-cols-5 lg:gap-5 lg:pb-8">
-            {c.screens.mobile.map((s, i) => (
-              <li key={s.src} className="group/card w-[56%] shrink-0 snap-start sm:w-[34%] lg:w-auto">
-                <Reveal delay={i * 70}>
-                  <Phone figure={s} lift={i % 2 === 1} />
-                </Reveal>
-              </li>
-            ))}
-          </SnapStrip>
-
-          <Sub title="Web app" className="mt-14 lg:mt-20" />
-          <div className="grid gap-5 md:grid-cols-2">
-            {c.screens.web.map((s, i) => (
-              <Reveal key={s.src} delay={i * 90}>
-                <Browser figure={s} />
+          <Sub title="Mobile" count={c.screens.mobile.reduce((n, f) => n + f.shots.length, 0)} />
+          <div className="space-y-4">
+            {c.screens.mobile.map((flow, f) => (
+              <Reveal key={flow.title}>
+                <div className="grid gap-6 overflow-hidden rounded-3xl border border-white/10 bg-panel/40 p-5 sm:p-8 md:grid-cols-[13rem_1fr] md:items-center md:gap-8 lg:grid-cols-[15rem_1fr] lg:gap-12 lg:p-10">
+                  <div>
+                    <p className="font-mono text-[11px] uppercase text-blue-glow">Flow 0{f + 1}</p>
+                    <h4 className="mt-2 font-serif text-[1.5rem] leading-tight">{flow.title}</h4>
+                    <p className="mt-2 text-[0.95rem] leading-relaxed text-ink-soft">{flow.note}</p>
+                  </div>
+                  <div className="flex items-start pb-4 pt-1 md:pb-6">
+                    {flow.shots.map((s, i) => (
+                      <div
+                        key={s.src}
+                        className={`relative w-[29%] shrink-0 transition-transform duration-500 ease-out-expo hover:z-20 hover:-translate-y-2 sm:w-[27%] md:w-[25%] ${i ? "-ml-[5.3%] sm:-ml-[2.6%] md:ml-[2%]" : ""} ${i % 2 ? "translate-y-4 md:translate-y-6" : ""}`}
+                        style={{ zIndex: 10 - Math.abs(i - 1) }}
+                      >
+                        <Phone figure={s} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </Reveal>
             ))}
           </div>
 
-          <Sub title="Admin dashboard" className="mt-14 lg:mt-20" />
-          <div className="grid gap-5 md:grid-cols-2">
-            {c.screens.dashboard.map((s, i) => (
-              <Reveal key={s.src} delay={i * 90}>
-                <Browser figure={s} />
-              </Reveal>
-            ))}
-          </div>
+          <Sub title="Web" count={c.screens.web.length} className="mt-14 lg:mt-20" />
+          <Reveal>
+            <Collection shots={c.screens.web} />
+          </Reveal>
+
+          <Sub title="Admin dashboard" count={c.screens.dashboard.length} className="mt-14 lg:mt-20" />
+          <Reveal>
+            <Collection shots={c.screens.dashboard} mirror />
+          </Reveal>
         </Band>
 
         {/* ── impact in numbers, then where to go next ── */}
@@ -279,19 +296,10 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
                   </span>
                 </a>
               </div>
-              <nav aria-label="More work" className="mt-4 grid gap-4 sm:grid-cols-2">
-                <Link href="/#best-work" className="rounded-2xl border border-white/10 p-6 transition-colors hover:border-blue-glow/50">
-                  <p className="font-mono text-[11px] uppercase text-ink-soft">← Back</p>
-                  <p className="mt-2 text-[1.1rem] font-semibold">All projects</p>
-                </Link>
-                <a
-                  href={nextHref}
-                  {...(nextExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                  className="rounded-2xl border border-white/10 p-6 text-right transition-colors hover:border-blue-glow/50"
-                >
-                  <p className="font-mono text-[11px] uppercase text-ink-soft">Next project →</p>
-                  <p className="mt-2 text-[1.1rem] font-semibold">{nextProject.name}</p>
-                </a>
+              {/* previous / next project — two small arrows, the way you'd flip a page */}
+              <nav aria-label="More projects" className="mt-12 flex items-center justify-between gap-4">
+                <ProjectArrow dir="prev" href={prevHref} external={prevExternal} name={prevProject.name} />
+                <ProjectArrow dir="next" href={nextHref} external={nextExternal} name={nextProject.name} />
               </nav>
             </Reveal>
           </div>
@@ -319,9 +327,14 @@ function Band({ n, label, children }: { n: string; label: string; children: Reac
   );
 }
 
-/** A small label above a group of screens. */
-function Sub({ title, className = "" }: { title: string; className?: string }) {
-  return <h3 className={`mb-5 text-[1.05rem] font-semibold text-ink ${className}`}>{title}</h3>;
+/** A small label above a group of screens, with how many there are. */
+function Sub({ title, count, className = "" }: { title: string; count: number; className?: string }) {
+  return (
+    <h3 className={`mb-5 flex items-baseline gap-3 text-[1.05rem] font-semibold text-ink ${className}`}>
+      {title}
+      <span className="font-mono text-[11px] font-normal uppercase text-ink-soft">{count} screens</span>
+    </h3>
+  );
 }
 
 /** A design-system card: a small sub-heading and its sample. */
@@ -352,31 +365,77 @@ function GridOnScreen({ figure, cols, label, className = "" }: { figure: Figure;
 }
 
 /** A phone: the screen inside a slim bezel. */
-function Phone({ figure, lift }: { figure: Figure; lift: boolean }) {
+function Phone({ figure }: { figure: Figure }) {
   return (
-    <div
-      className={`rounded-[1.9rem] border border-white/12 bg-[#0b0d16] p-[5px] shadow-[0_24px_48px_-28px_rgba(0,0,0,0.8)] transition-[transform,border-color] duration-500 ease-out-expo max-lg:group-data-[active=true]/card:-translate-y-1 max-lg:group-data-[active=true]/card:border-blue-glow/40 lg:hover:-translate-y-2 lg:hover:border-blue-glow/40 ${lift ? "lg:translate-y-8" : ""}`}
-    >
-      <div className="relative aspect-[375/812] overflow-hidden rounded-[1.6rem] bg-white">
-        <Image src={figure.src} alt={figure.alt} fill sizes="(min-width: 1024px) 210px, 56vw" className="object-cover object-top" />
+    <div className="rounded-[14%/6.5%] border border-white/12 bg-[#0b0d16] p-[3.5%] shadow-[0_24px_48px_-24px_rgba(0,0,0,0.85)]">
+      <div className="relative aspect-[375/812] overflow-hidden rounded-[11%/5%] bg-white">
+        <Image src={figure.src} alt={figure.alt} fill sizes="(min-width: 1024px) 200px, 30vw" className="object-cover object-top" />
       </div>
     </div>
   );
 }
 
-/** A browser window: three dots, then the screen. */
-function Browser({ figure }: { figure: Figure }) {
+/**
+ * Several screens of one platform as one collection: the first leads, big, and the rest
+ * sit beside it in a 2×2 grid (`mirror` puts the lead on the other side). On phones the
+ * lead runs full width and the rest pair up under it.
+ */
+function Collection({ shots, mirror = false }: { shots: Figure[]; mirror?: boolean }) {
+  const [lead, ...rest] = shots;
   return (
-    <figure className="group overflow-hidden rounded-2xl border border-white/10 bg-panel/60 transition-[transform,border-color] duration-500 ease-out-expo lg:hover:-translate-y-1 lg:hover:border-blue-glow/40">
-      <div className="flex items-center gap-1.5 px-4 py-3" aria-hidden>
-        <span className="size-2.5 rounded-full bg-white/15" />
-        <span className="size-2.5 rounded-full bg-white/15" />
-        <span className="size-2.5 rounded-full bg-white/15" />
+    <div className="grid grid-flow-dense grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <Browser figure={lead} className={`col-span-2 lg:row-span-2 ${mirror ? "lg:col-start-3" : ""}`} large />
+      {rest.map((s) => (
+        <Browser key={s.src} figure={s} />
+      ))}
+    </div>
+  );
+}
+
+/** A browser window: three dots, then the screen. */
+function Browser({ figure, large = false, className = "" }: { figure: Figure; large?: boolean; className?: string }) {
+  return (
+    <figure
+      className={`flex flex-col overflow-hidden rounded-xl border border-white/10 bg-panel/60 transition-[transform,border-color] duration-500 ease-out-expo hover:-translate-y-1 hover:border-blue-glow/40 ${large ? "sm:rounded-2xl" : ""} ${className}`}
+    >
+      <div className={`flex items-center gap-1 ${large ? "px-4 py-3 sm:gap-1.5" : "px-2.5 py-2"}`} aria-hidden>
+        {[0, 1, 2].map((d) => (
+          <span key={d} className={`rounded-full bg-white/15 ${large ? "size-2.5" : "size-1.5"}`} />
+        ))}
       </div>
-      <div className="relative overflow-hidden bg-white" style={{ aspectRatio: figure.w / figure.h }}>
-        <Image src={figure.src} alt={figure.alt} fill sizes="(min-width: 768px) 560px, 100vw" className="object-cover object-top" />
+      <div className={`relative overflow-hidden bg-white ${large ? "aspect-[1440/1024] lg:aspect-auto lg:flex-1" : "aspect-[1440/1024]"}`}>
+        <Image
+          src={figure.src}
+          alt={figure.alt}
+          fill
+          sizes={large ? "(min-width: 1024px) 580px, 100vw" : "(min-width: 1024px) 280px, 50vw"}
+          className="object-cover object-top"
+        />
       </div>
-      <figcaption className="sr-only">{figure.alt}</figcaption>
     </figure>
+  );
+}
+
+/** Previous / next project: a small circled arrow and the project's name. */
+function ProjectArrow({ dir, href, external, name }: { dir: "prev" | "next"; href: string; external: boolean; name: string }) {
+  const next = dir === "next";
+  return (
+    <a
+      href={href}
+      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      className={`group/arrow flex min-h-11 items-center gap-3 ${next ? "flex-row-reverse text-right" : ""}`}
+    >
+      <span
+        className={`grid size-11 shrink-0 place-items-center rounded-full border border-white/15 text-ink transition-[border-color,transform,color] duration-300 group-hover/arrow:border-blue-glow/60 group-hover/arrow:text-blue-glow group-active/arrow:scale-95 ${next ? "group-hover/arrow:translate-x-0.5" : "group-hover/arrow:-translate-x-0.5"}`}
+      >
+        <svg viewBox="0 0 16 16" className={`size-4 ${next ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M13 8H3M7.5 3.5 3 8l4.5 4.5" />
+        </svg>
+      </span>
+      <span>
+        <span className="block font-mono text-[11px] uppercase text-ink-soft">{next ? "Next" : "Previous"}</span>
+        <span className="block text-[0.98rem] font-semibold leading-tight text-ink">{name}</span>
+      </span>
+    </a>
   );
 }

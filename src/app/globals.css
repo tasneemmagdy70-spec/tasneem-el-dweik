@@ -231,3 +231,21 @@ body {
     animation: none;
   }
 }
+
+/* case study: the chips under the title drift slowly to the left, on a loop (two copies, -50%) */
+@keyframes case-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.case-marquee {
+  animation: case-marquee 38s linear infinite;
+}
+.case-marquee-wrap:hover .case-marquee {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .case-marquee {
+    animation: none;
+  }
+}
