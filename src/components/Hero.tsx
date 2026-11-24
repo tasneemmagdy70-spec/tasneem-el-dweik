@@ -363,7 +363,7 @@ export default function Hero() {
           {/* ── nucleus ── */}
           <motion.div
             ref={nucWrap}
-            className="absolute left-[calc(50vw-min(65vw,32svh))] top-[calc(5rem+12svh)] z-10 w-[min(130vw,64svh)] lg:relative lg:left-auto lg:top-auto lg:order-2 lg:mx-auto lg:w-full lg:max-w-[620px]"
+            className="absolute left-[calc(50vw-min(65vw,32svh))] top-[calc(5rem+12svh)] z-10 w-[min(130vw,64svh)] lg:relative lg:left-auto lg:top-auto lg:order-2 lg:mx-auto lg:w-full lg:max-w-[620px] atom-clear"
             style={mobile ? { originY: 0, x: mX, y: mY, scale: mScale, filter: mFilter, opacity: mFade } : { originY: 0.5 }}
             // desktop only — while the breakpoint is still unknown, animating x/y here would take
             // ownership of them and the mobile dock (style x/y) would never move the atom

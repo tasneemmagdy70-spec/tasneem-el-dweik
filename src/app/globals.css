@@ -130,6 +130,19 @@ body {
   overscroll-behavior-x: none;
 }
 
+/* Desktop: the depth rail (right edge) and the atom's orbiting words never share space.
+   On narrower desktops the atom steps a little left (into the empty gap beside the headline)
+   and trims a little, so its right edge ends before the rail. Wide screens: no change. */
+@media (min-width: 1024px) {
+  .atom-clear {
+    --nr: max(0px, min(172px, calc(748px - 50vw)));
+    --nl: min(40px, calc(var(--nr) / 2));
+    margin-left: calc(-1 * var(--nl));
+    margin-right: var(--nr);
+    width: calc(100% + var(--nl) - var(--nr));
+  }
+}
+
 /* Visible keyboard focus everywhere */
 :focus-visible {
   outline: 2px solid var(--color-blue-glow);

@@ -141,6 +141,7 @@ export default function Nucleus({ stage, instant, reduce, compact, labels, label
     return s;
   };
 
+  const clash = useRef(new Map<string, number>()); // per word: 1 = shown, 0 = stepped aside
   const place = (dt: number) => {
     const { angles } = sync();
     const rect = box.current?.getBoundingClientRect();
@@ -149,7 +150,10 @@ export default function Nucleus({ stage, instant, reduce, compact, labels, label
     // read every width before writing any style (avoids layout thrash)
     const widths = new Map<string, number>();
     chipEls.current.forEach((el, key) => widths.set(key, el.offsetWidth));
+    const heights = new Map<string, number>();
+    chipEls.current.forEach((el, key) => heights.set(key, el.offsetHeight));
     const vw = window.innerWidth;
+    const placed: { key: string; el: HTMLDivElement; x: number; y: number; s: number; depth: number; op: number }[] = [];
     rings.forEach((ring, ri) => {
       ring.chips.forEach((_, ci) => {
         const key = `${ri}-${ci}`;
@@ -189,12 +193,41 @@ export default function Nucleus({ stage, instant, reduce, compact, labels, label
           const clamped = Math.min(Math.max(px, half), vw - half);
           x += (clamped - px) / unit;
         }
-        el.style.left = pct(x);
-        el.style.top = pct(p.y + cur.y);
-        el.style.transform = `translate(-50%, -50%) scale(${s.toFixed(3)})`;
-        el.style.opacity = (Math.min(1, rf * 1.5) * (front ? 1 : 0.55 + 0.35 * (1 + p.depth))).toFixed(3);
-        el.style.zIndex = front ? "40" : "5";
+        const op = Math.min(1, rf * 1.5) * (front ? 1 : 0.55 + 0.35 * (1 + p.depth));
+        placed.push({ key, el, x, y: p.y + cur.y, s, depth: p.depth, op });
       });
+    });
+
+    // Desktop: two words never sit on top of each other. When two orbits carry their words
+    // across the same spot, the one further back steps aside (fades) until they've passed —
+    // smoothly, so nothing flickers. (Phones keep their own behaviour.)
+    if (!compact && unit > 0) {
+      const box2 = (c: (typeof placed)[number]) => {
+        const w = ((widths.get(c.key) ?? 0) * c.s) / unit / 2 + 4;
+        const h = ((heights.get(c.key) ?? 0) * c.s) / unit / 2 + 2;
+        return { l: c.x - w, r: c.x + w, t: c.y - h, b: c.y + h };
+      };
+      const hide = new Set<string>();
+      for (let i = 0; i < placed.length; i++)
+        for (let j = i + 1; j < placed.length; j++) {
+          const a = box2(placed[i]);
+          const b = box2(placed[j]);
+          if (a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b) hide.add(placed[i].depth < placed[j].depth ? placed[i].key : placed[j].key);
+        }
+      placed.forEach((c) => {
+        const f = clash.current.get(c.key) ?? 1;
+        const next = f + ((hide.has(c.key) ? 0 : 1) - f) * Math.min(1, dt * 10);
+        clash.current.set(c.key, next);
+        c.op *= next;
+      });
+    }
+
+    placed.forEach(({ el, x, y, s, depth, op }) => {
+      el.style.left = pct(x);
+      el.style.top = pct(y);
+      el.style.transform = `translate(-50%, -50%) scale(${s.toFixed(3)})`;
+      el.style.opacity = op.toFixed(3);
+      el.style.zIndex = depth > 0 ? "40" : "5";
     });
   };
 
