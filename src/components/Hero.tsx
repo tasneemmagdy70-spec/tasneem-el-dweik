@@ -845,7 +845,7 @@ function Teaser({ chapter, onNext, className = "", large = false }: { chapter: n
         {n.n} · {n.name}
       </span>
       <span
-        className={`block font-serif tracking-[-0.01em] text-ink opacity-[0.26] transition-opacity group-active:opacity-60 ${
+        className={`block font-serif tracking-[-0.01em] text-ink opacity-50 transition-opacity group-active:opacity-80 ${
           large
             ? "text-[clamp(2.1rem,5svh,2.6rem)] leading-[1] sm:text-[clamp(2.75rem,5svh,3.5rem)]"
             : "text-[clamp(1.45rem,3.3svh,1.8rem)] leading-[1.05] sm:text-[clamp(2rem,3.3svh,2.5rem)]"
@@ -963,7 +963,7 @@ function SurfaceHeadline({
         <span>
           Scroll <span className="text-blue-glow">↓</span> 02 · The Why
         </span>
-        <span aria-hidden className="font-serif text-[1.3rem] normal-case leading-none tracking-[-0.01em] text-ink opacity-30 sm:text-[1.7rem]">
+        <span aria-hidden className="font-serif text-[1.3rem] normal-case leading-none tracking-[-0.01em] text-ink opacity-50 sm:text-[1.7rem]">
           {PEEK[1]}
         </span>
       </motion.button>

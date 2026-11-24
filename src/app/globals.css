@@ -163,6 +163,14 @@ body {
   .font-mono.text-\[0\.66rem\] {
     font-size: 12px !important;
   }
+  /* the softer (secondary) text, a step brighter: on a phone screen the original read as almost
+     off next to the white. White still leads; the hierarchy is the same, just legible. */
+  .text-ink-soft {
+    color: #aab6d6;
+  }
+  [data-theme="light"] .text-ink-soft {
+    color: #364270;
+  }
   /* the drifting dots stay, at under half the speed */
   .deep-particle {
     animation-duration: 45s !important;
