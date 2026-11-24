@@ -26,8 +26,9 @@ export type CaseStudy = {
   /** the problem in one sentence, with the words that matter lit */
   problem: { before: string; lit: string; after: string; quote: string };
   decisions: { title: string; why: string; figure: Figure }[];
-  /** the design system as spec cards: colour and type always; the rest when the project has them */
-  system: {
+  /** the design system as spec cards: colour and type always; the rest when the project has them.
+   *  Left out when the project stopped before visual design (the section is then skipped). */
+  system?: {
     colors: { hex: string; name: string }[]; // the first is the brand colour
     font: string;
     sizes?: number[]; // the type scale…
@@ -37,8 +38,12 @@ export type CaseStudy = {
     components?: Figure; // the components sheet (shown cropped)
     brand?: Figure; // the logo / identity, shown wide
   };
+  /** brand colour for the project's own specimens (defaults to the first system colour) */
+  accent?: string;
   /** the final screens, exported from the Figma file, grouped by platform */
   screens: {
+    title?: string; // section title, "Final screens" by default (e.g. "Wireframes")
+    noun?: string; // what is counted, "screens" by default
     /** mobile, as user flows: each a few screens in the order you meet them */
     mobile: { title: string; note: string; shots: Figure[] }[];
     /** web size and dashboard, as one collection each — the first screen leads */
@@ -52,6 +57,7 @@ export type CaseStudy = {
 
 const IMG = "/images/work/novu";
 const SANAA = "/images/work/sanaa";
+const SAKNNY = "/images/work/saknny";
 
 export const CASE_STUDIES: CaseStudy[] = [
   {
@@ -323,6 +329,96 @@ export const CASE_STUDIES: CaseStudy[] = [
       { value: "5", label: "research methods" },
       { value: "3", label: "user personas" },
       { value: "1", label: "phygital booking app" },
+    ],
+  },
+  {
+    slug: "saknny",
+    n: "04",
+    name: "Saknny",
+    tagline: "Verified student housing and trusted home repairs, without the broker.",
+    behance: "https://www.behance.net/gallery/246243185/Saknny-Student-Housing-Home-Services-App",
+    chips: ["UX research", "Mobile app", "Stakeholder interviews", "User interviews", "Survey", "Competitive analysis", "Personas", "Journey map", "Card sorting", "A/B testing"],
+    cover: { src: `${SAKNNY}/cover.webp`, w: 1424, h: 820, alt: "Saknny UX case study cover." },
+    accent: "#0874C5",
+    process: {
+      stats: [
+        { value: "9", label: "key insights" },
+        { value: "4", label: "competitors compared" },
+        { value: "2", label: "user personas" },
+        { value: "1", label: "A/B test" },
+      ],
+      phases: [
+        {
+          name: "Understand",
+          methods: ["Stakeholder interviews", "User interviews", "Survey", "Competitive analysis"],
+          figure: { src: `${SAKNNY}/ux/survey.webp`, w: 1424, h: 1480, alt: "Survey results: housing type, priorities, payment and handyman services." },
+        },
+        {
+          name: "Specify",
+          methods: ["Affinity diagram", "Empathy map", "Personas", "User journey map"],
+          figure: { src: `${SAKNNY}/ux/affinity-diagram.webp`, w: 1424, h: 1820, alt: "Affinity diagram: search, loyalty, fees, safety, services and communication." },
+        },
+        {
+          name: "Design",
+          methods: ["Card sorting", "Information architecture", "User flow", "Wireframes"],
+          figure: { src: `${SAKNNY}/ux/information-architecture.webp`, w: 1424, h: 2350, alt: "Information architecture of Saknny." },
+        },
+        {
+          name: "Evaluate",
+          methods: ["A/B testing", "Home screen: search icon vs. search bar"],
+          figure: { src: `${SAKNNY}/ux/ab-test.webp`, w: 1424, h: 1550, alt: "A/B test of two home screens, the hypothesis and the decision." },
+        },
+      ],
+      insights: [
+        { title: "Trust starts with real photos", body: "Photos must match the flat. Safety and cleanliness lead every choice (31% each)." },
+        { title: "Repairs are part of the home", body: "56% would book a handyman in the app; plumbers are needed most (50%)." },
+        { title: "Pay online, but safely", body: "56% prefer paying online, through a system that protects them." },
+      ],
+    },
+    problem: {
+      before: "Students moving to a new city face ",
+      lit: "fake listings and broker fees",
+      after: ", and no one they trust for repairs.",
+      quote: "Brokers usually charge too much for helping find housing.",
+    },
+    decisions: [
+      {
+        title: "Verified homes, real photos",
+        why: "Fake ads broke trust, so every listing shows real photos, the owner and past tenants' reviews.",
+        figure: { src: `${SAKNNY}/decisions/verified.webp`, w: 1400, h: 875, alt: "Home and apartment details wireframes." },
+      },
+      {
+        title: "Repairs a tap away",
+        why: "A home is only as good as its fixes, so rated technicians nearby sit next to the flats.",
+        figure: { src: `${SAKNNY}/decisions/repairs.webp`, w: 1400, h: 875, alt: "Home and handyman profile wireframes." },
+      },
+      {
+        title: "A search bar you can see",
+        why: "An A/B test of the home screen: a visible search bar beat an icon, so version B shipped.",
+        figure: { src: `${SAKNNY}/decisions/search.webp`, w: 1400, h: 875, alt: "A/B test: version A with a search icon, version B with a search bar." },
+      },
+    ],
+    screens: {
+      title: "Wireframes",
+      noun: "wireframes",
+      mobile: [
+        {
+          title: "Find a home, fix a home",
+          note: "Home, an apartment's details and a handyman's profile, annotated in the case study.",
+          shots: [
+            { src: `${SAKNNY}/screens/w-home.webp`, w: 390, h: 844, alt: "Home wireframe: search, top-rated flats and most-requested technicians." },
+            { src: `${SAKNNY}/screens/w-apartment.webp`, w: 390, h: 844, alt: "Apartment details wireframe: photos, places left, owner and reviews." },
+            { src: `${SAKNNY}/screens/w-handyman.webp`, w: 390, h: 844, alt: "Handyman profile wireframe: services, price, location and reviews." },
+          ],
+        },
+      ],
+      totals: { mobile: "3" },
+    },
+    impact: [
+      { value: "4", label: "days, start to finish" },
+      { value: "5", label: "problems uncovered" },
+      { value: "8", label: "solution features" },
+      { value: "3", label: "user groups" },
     ],
   },
 ];

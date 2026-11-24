@@ -56,7 +56,11 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
   const prevProject = FEATURED[(at - 1 + FEATURED.length) % FEATURED.length];
   const prevHref = prevProject.caseStudy ?? prevProject.href;
   const prevExternal = !prevProject.caseStudy;
-  const accent = c.system.colors[0].hex; // the project's brand colour, for its own specimens
+  const accent = c.accent ?? c.system?.colors[0].hex ?? "#5b8cff"; // the project's brand colour, for its own specimens
+  const system = c.system;
+  // sections are numbered in the order they appear; a project without one simply skips it
+  const nScreens = system ? "04" : "03";
+  const noun = c.screens.noun ?? "screens";
 
   return (
     <div className="relative min-h-screen bg-paper text-ink">
@@ -211,6 +215,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         </Band>
 
         {/* ── design system: grouped like a spec — colour and type, then grid & icons, components or the brand ── */}
+        {system && (
         <Band label="Design system" n="03">
           <div className="grid gap-4 md:grid-cols-12">
             {/* colour */}
@@ -218,9 +223,9 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
               <Spec title="Color">
                 <div
                   className="grid grid-cols-[repeat(var(--mcols),minmax(0,1fr))] gap-x-2.5 gap-y-5 sm:grid-cols-[repeat(var(--cols),minmax(0,1fr))] sm:gap-3"
-                  style={{ "--cols": c.system.colors.length, "--mcols": c.system.colors.length > 4 ? 3 : c.system.colors.length } as React.CSSProperties}
+                  style={{ "--cols": system.colors.length, "--mcols": system.colors.length > 4 ? 3 : system.colors.length } as React.CSSProperties}
                 >
-                  {c.system.colors.map((col) => (
+                  {system.colors.map((col) => (
                     <div key={col.hex}>
                       <div className="h-24 rounded-xl ring-1 ring-white/10 sm:h-32" style={{ background: col.hex }} />
                       <p className="mt-2.5 text-[0.82rem] leading-tight text-ink sm:text-[0.88rem]">{col.name}</p>
@@ -234,21 +239,21 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
             {/* type: the scale, or the weights in use */}
             <Reveal delay={90} className="md:col-span-5">
               <Spec title="Type">
-                <div className={`flex items-end justify-between gap-4 ${FONT_CLASS[c.system.font] ?? ""}`}>
+                <div className={`flex items-end justify-between gap-4 ${FONT_CLASS[system.font] ?? ""}`}>
                   <div>
                     <p className="text-[4rem] font-bold leading-[0.9]" style={{ color: accent }}>
                       Aa
                     </p>
-                    <p className="mt-2 text-[1.05rem] font-bold">{c.system.font}</p>
+                    <p className="mt-2 text-[1.05rem] font-bold">{system.font}</p>
                   </div>
                   <ul className="space-y-1 text-right">
-                    {c.system.sizes?.map((s) => (
+                    {system.sizes?.map((s) => (
                       <li key={s} className="leading-none" style={{ fontSize: Math.round(s * 0.62) }}>
                         {s}
                         <span className="ml-1 font-mono text-[10px] text-ink-soft">px</span>
                       </li>
                     ))}
-                    {c.system.weights?.map((w) => (
+                    {system.weights?.map((w) => (
                       <li key={w.name} className="text-[0.95rem] leading-tight" style={{ fontWeight: w.value }}>
                         {w.name}
                       </li>
@@ -259,25 +264,25 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
             </Reveal>
 
             {/* grid & icons — the grid drawn over real screens, and the project's own icons */}
-            {(c.system.grid || c.system.icons) && (
+            {(system.grid || system.icons) && (
               <Reveal className="md:col-span-5">
                 <Spec title="Grid & icons">
-                  {c.system.grid && (
+                  {system.grid && (
                     <div className="flex items-end gap-3">
-                      <GridOnScreen figure={c.system.grid.mobile} cols={4} className="w-[26%]" label="4 col" accent={accent} />
-                      <GridOnScreen figure={c.system.grid.desktop} cols={12} className="flex-1" label="12 col" accent={accent} />
+                      <GridOnScreen figure={system.grid.mobile} cols={4} className="w-[26%]" label="4 col" accent={accent} />
+                      <GridOnScreen figure={system.grid.desktop} cols={12} className="flex-1" label="12 col" accent={accent} />
                     </div>
                   )}
-                  {c.system.icons && (
+                  {system.icons && (
                     <>
                       <ul className="mt-6 grid grid-cols-8 gap-1.5" aria-label={`Some of ${c.name}'s icons`}>
-                        {c.system.icons.set.map((ic) => (
+                        {system.icons.set.map((ic) => (
                           <li key={ic.name} className="grid aspect-square place-items-center rounded-lg bg-white/[0.04]" style={{ color: accent }}>
                             <svg viewBox={ic.viewBox} className="size-[55%]" aria-hidden dangerouslySetInnerHTML={{ __html: ic.body }} />
                           </li>
                         ))}
                       </ul>
-                      <p className="mt-3 text-[0.88rem] text-ink-soft">{c.system.icons.note}</p>
+                      <p className="mt-3 text-[0.88rem] text-ink-soft">{system.icons.note}</p>
                     </>
                   )}
                 </Spec>
@@ -285,22 +290,22 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
             )}
 
             {/* components */}
-            {c.system.components && (
+            {system.components && (
               <Reveal delay={90} className="md:col-span-7">
                 <Spec title="Components" flush>
                   <div className="relative h-56 overflow-hidden rounded-xl bg-white sm:h-72 md:h-full md:min-h-[13rem]">
-                    <Image src={c.system.components.src} alt={c.system.components.alt} fill sizes="(min-width: 1024px) 640px, 100vw" className="object-cover object-[center_95%]" />
+                    <Image src={system.components.src} alt={system.components.alt} fill sizes="(min-width: 1024px) 640px, 100vw" className="object-cover object-[center_95%]" />
                   </div>
                 </Spec>
               </Reveal>
             )}
 
             {/* brand — the logo and identity, wide */}
-            {c.system.brand && (
+            {system.brand && (
               <Reveal className="md:col-span-12">
                 <Spec title="Brand" flush>
                   <div className="relative h-48 overflow-hidden rounded-xl bg-white sm:h-64 lg:h-72">
-                    <Image src={c.system.brand.src} alt={c.system.brand.alt} fill sizes="(min-width: 1024px) 1100px, 100vw" className="object-cover object-center" />
+                    <Image src={system.brand.src} alt={system.brand.alt} fill sizes="(min-width: 1024px) 1100px, 100vw" className="object-cover object-center" />
                   </div>
                 </Spec>
               </Reveal>
@@ -308,9 +313,11 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
           </div>
         </Band>
 
+        )}
+
         {/* ── final screens: phones in a row, then the web app and the dashboard in browser frames ── */}
-        <Band label="Final screens" n="04">
-          <Sub title="Mobile" note={screensNote(c.screens.mobile.reduce((n, f) => n + f.shots.length, 0), c.screens.totals.mobile)} />
+        <Band label={c.screens.title ?? "Final screens"} n={nScreens}>
+          <Sub title="Mobile" note={screensNote(c.screens.mobile.reduce((n, f) => n + f.shots.length, 0), c.screens.totals.mobile, noun)} />
           <div className="space-y-4">
             {c.screens.mobile.map((flow, f) => (
               <Reveal key={flow.title}>
@@ -338,7 +345,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
 
           {c.screens.web && (
             <>
-              <Sub title="Web" note={screensNote(c.screens.web.length, c.screens.totals.web)} className="mt-14 lg:mt-20" />
+              <Sub title="Web" note={screensNote(c.screens.web.length, c.screens.totals.web, noun)} className="mt-14 lg:mt-20" />
               <Reveal>
                 <Collection shots={c.screens.web} />
               </Reveal>
@@ -347,7 +354,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
 
           {c.screens.dashboard && (
             <>
-              <Sub title="Admin dashboard" note={screensNote(c.screens.dashboard.length, c.screens.totals.dashboard)} className="mt-14 lg:mt-20" />
+              <Sub title="Admin dashboard" note={screensNote(c.screens.dashboard.length, c.screens.totals.dashboard, noun)} className="mt-14 lg:mt-20" />
               <Reveal>
                 <Collection shots={c.screens.dashboard} mirror />
               </Reveal>
@@ -414,9 +421,9 @@ function Band({ n, label, children }: { n: string; label: string; children: Reac
 }
 
 /** "12 of 40+ screens", or "all 8 screens" when every one is shown. */
-function screensNote(shown: number, total?: string) {
-  if (!total) return `${shown} screens`;
-  return shown >= Number(total) ? `all ${total} screens` : `${shown} of ${total} screens`;
+function screensNote(shown: number, total?: string, noun = "screens") {
+  if (!total) return `${shown} ${noun}`;
+  return shown >= Number(total) ? `all ${total} ${noun}` : `${shown} of ${total} ${noun}`;
 }
 
 /** A small label above a group, with an optional note (e.g. how many screens are shown). */

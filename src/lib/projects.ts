@@ -51,6 +51,7 @@ export const FEATURED: Project[] = [
     meta: "Mobile app",
     hue: 190,
     href: `${BE}/246243185/Saknny-Student-Housing-Home-Services-App`,
+    caseStudy: "/work/saknny",
     image: "/images/projects/saknny.webp",
   },
   {
