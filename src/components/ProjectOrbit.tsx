@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { uiSound } from "@/lib/uiSound";
 import { animate, AnimatePresence, motion, useAnimationFrame, useMotionValue, useMotionValueEvent, useReducedMotion, type MotionValue } from "motion/react";
 import { FEATURED as PROJECTS } from "@/lib/projects";
@@ -71,9 +71,46 @@ const HINT_KEY = "ed-orbit-hint";
 export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobile, vw, vh, onAll }: Props) {
   const reduce = useReducedMotion();
   const N = PROJECTS.length;
-  const { CW, CH, CAPH, fx, fy, top, bottom, tablet } = coreStage(vw, vh, mobile);
+  const stage = coreStage(vw, vh, mobile);
+  const { fx, top, bottom, tablet } = stage;
+  let { CW, CH, CAPH, fy } = stage;
   const REST = tablet ? 0.28 : mobile ? 0.34 : 0.36; // an electron's size relative to the stage card
-  const capTop = fy + CH / 2 + 16;
+
+  // Phones & tablets: one measured stack — title · card (cover + folder front) · controls — with
+  // the same rhythm on every screen: a fixed breath under the title, a fixed gap to the controls,
+  // and the card as large as what's left allows (never so large that anything touches).
+  const titleBox = useRef<HTMLDivElement>(null);
+  const [titleBottom, setTitleBottom] = useState(0);
+  useLayoutEffect(() => {
+    const el = titleBox.current;
+    if (!el) return;
+    const measure = () => setTitleBottom(el.offsetTop + el.offsetHeight);
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    measure();
+    return () => ro.disconnect();
+  }, []);
+  const TAB = 28; // the folder tab's height (it rises over the cover)
+  const PH = tablet ? 204 : 164; // the folder front: number, name, line, divider, type
+  const GAP_TOP = tablet ? 40 : 30; // title → card
+  const GAP_ROW = tablet ? 28 : 22; // card → controls
+  const ROW = 48; // the controls row
+  let rowTop = 0;
+  if (mobile) {
+    const tb = titleBottom || (tablet ? 240 : 190);
+    const avail = vh - (tablet ? 32 : 18) - tb - GAP_TOP; // card + gap + controls must fit here
+    const fixed = PH - TAB + GAP_ROW + ROW;
+    CW = Math.max(180, Math.min(tablet ? Math.min(vw * 0.66, 540) : vw * 0.86, (avail - fixed) / COVER));
+    CH = CW * COVER;
+    // whatever height is left over is shared out — a little more above than below — so the
+    // stack sits balanced in the space under the title instead of leaving a hole at the bottom
+    const spare = Math.max(0, avail - (CH + fixed));
+    const cardTop = tb + GAP_TOP + spare * 0.4;
+    fy = cardTop + CH / 2;
+    CAPH = PH;
+    rowTop = cardTop + CH - TAB + PH + GAP_ROW + spare * 0.25; // (the last 35% stays under the controls)
+  }
+  const capTop = mobile ? fy + CH / 2 - TAB + 16 : fy + CH / 2 + 16;
   // the caption never gets narrower than its button needs, even when a short phone shrinks the card
   const capW = mobile && !tablet ? Math.min(vw - 48, Math.max(CW, 300)) : CW;
   const left = tablet ? 40 : mobile ? 24 : Math.max(32, (vw - 1152) / 2 + 32);
@@ -102,8 +139,8 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
     { l: fx - CW / 2 - (mobile ? 8 : 24), r: fx + CW / 2 + (mobile ? 8 : 24), t: capTop - 10, b: capTop + CAPH - 8 }, // caption (phones: the folder's front)
     { l: 0, r: mobile ? vw : left + 470, t: 0, b: mobile ? top - 8 : vh * 0.13 + 124 }, // title
     { l: 0, r: vw, t: bottom + 6, b: vh }, // "All projects"
-    // phones: the folder's tab — an electron never crosses it (over the card itself they simply pass behind)
-    ...(mobile ? [{ l: fx - CW / 2 - 8, r: fx + CW / 2 + 8, t: fy - CH / 2 - 44, b: fy - CH / 2 + 6 }] : []), // (just the tab's band)
+    // phones: the controls — an electron never crosses them (over the card itself they simply pass behind)
+    ...(mobile ? [{ l: 0, r: vw, t: rowTop - 6, b: rowTop + ROW + 6 }] : []), // (the controls row)
   ];
 
   const cards = useRef<(HTMLDivElement | null)[]>([]);
@@ -111,8 +148,7 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
   const trails = useRef<(SVGLineElement | null)[]>([]);
   const frames = useRef<(SVGRectElement | null)[]>([]);
   const imgs = useRef<(HTMLSpanElement | null)[]>([]);
-  // phones & tablets — the folder: its tab, the sheet (cover) that lifts out, the front (text)
-  const tabs = useRef<(HTMLSpanElement | null)[]>([]);
+  // phones & tablets — the folder: the sheet (cover) that lifts out, the front (tab + text)
   const sheets = useRef<(HTMLSpanElement | null)[]>([]);
   const fronts = useRef<(HTMLSpanElement | null)[]>([]);
   const focusSince = useRef<number[]>([]);
@@ -135,6 +171,31 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
     });
     return () => c.stop();
   }, [index, at, reduce]);
+
+  // gentle auto-advance (phones & tablets): while you rest on the work, the next project comes
+  // forward every few seconds; any touch pauses it; it stops at the last project
+  const onIndexRef = useRef(onIndex);
+  useEffect(() => {
+    onIndexRef.current = onIndex;
+  });
+  const lastTouch = useRef(0);
+  useEffect(() => {
+    if (!mobile || !enabled || reduce) return;
+    lastTouch.current = performance.now() - 3500; // the first one comes ~5.5s after arriving
+    const mark = () => void (lastTouch.current = performance.now());
+    window.addEventListener("touchstart", mark, { passive: true });
+    window.addEventListener("pointerdown", mark, { passive: true });
+    const id = window.setInterval(() => {
+      if (performance.now() - lastTouch.current < 9000) return; // a hand was just here: wait
+      const i = indexRef.current;
+      if (i < N - 1) onIndexRef.current(i + 1);
+    }, 5500);
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener("touchstart", mark);
+      window.removeEventListener("pointerdown", mark);
+    };
+  }, [mobile, enabled, reduce, N]);
 
   // touch: while a finger is on the work, the stage follows it — a full turn takes ~60% of the
   // screen's width, and past the first / last project it only gives a little (a soft edge).
@@ -253,8 +314,6 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
       // cover lifts a little out of it, then very slowly pushes in (once it has settled)
       if (mobile) {
         const open = smooth(clamp((focus - 0.5) / 0.5));
-        const tb = tabs.current[i];
-        if (tb) tb.style.opacity = open.toFixed(3);
         const fr2 = fronts.current[i];
         if (fr2) {
           fr2.style.opacity = open.toFixed(3);
@@ -266,7 +325,7 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
         const since = focusSince.current[i];
         const push = since !== undefined && !reduce ? smooth(clamp((now - since) / 6000)) : 0;
         const sh2 = sheets.current[i];
-        if (sh2) sh2.style.transform = `translateY(${(-7 * open).toFixed(1)}px)`;
+        if (sh2) sh2.style.transform = `translateY(${(-5 * open).toFixed(1)}px)`;
         const im = imgs.current[i];
         if (im) im.style.transform = `scale(${(1 + 0.06 * push).toFixed(4)})`;
       }
@@ -298,6 +357,7 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
     <div className="pointer-events-none absolute inset-0" aria-label="Projects in orbit">
       {/* the layer's title — left-aligned like every other layer */}
       <motion.div
+        ref={titleBox}
         className="absolute z-[95] max-w-[30rem] sm:max-w-[40rem] lg:max-w-[30rem]"
         style={{ opacity: show, left, right: mobile ? left : undefined, top: tablet ? "calc(6.5rem + 1.5svh)" : mobile ? "calc(5.75rem + 1svh)" : "13svh" }}
       >
@@ -374,57 +434,40 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
                 tabIndex={enabled && isActive ? 0 : -1}
                 className="relative block transition-transform duration-200 active:scale-[0.985]"
               >
-                {/* the folder's tab: number + kind */}
-                <span
-                  ref={(el) => void (tabs.current[i] = el)}
-                  aria-hidden
-                  className="absolute -top-[26px] left-3 flex h-[27px] max-w-[75%] items-center gap-1.5 truncate rounded-t-xl border border-b-0 border-white/15 bg-panel px-3 font-mono text-[10px] uppercase text-ink-soft"
-                  style={{ opacity: 0 }}
-                >
-                  <span className="text-sand">{String(i + 1).padStart(2, "0")}</span>
-                  <span className="truncate">{proj.meta.split("·")[0].trim()}</span>
-                </span>
-                {/* the folder's front: the words and the action (only for the project in focus) */}
-                <span
-                  ref={(el) => void (fronts.current[i] = el)}
-                  className="absolute inset-x-0 top-[calc(100%-14px)] block rounded-b-2xl rounded-tr-2xl border border-white/15 bg-panel px-4 pb-3.5 pt-[1.6rem] shadow-[0_24px_50px_-22px_rgb(var(--rgb-shadow)/0.9)] sm:px-5 sm:pb-5 sm:pt-[1.9rem]"
-                  style={{ opacity: 0 }}
-                >
-                  <span className="block truncate font-mono text-[10px] uppercase text-ink-soft">{proj.meta}</span>
-                  <span className="mt-1 block truncate font-serif text-[1.6rem] leading-none text-ink sm:mt-1.5 sm:text-[2.2rem]">{proj.name}</span>
-                  <span className="mt-1 block truncate text-[0.88rem] text-ink-soft sm:mt-1.5 sm:text-[1.05rem]">{proj.what}</span>
-                  <span className="mt-2.5 inline-flex items-center gap-2.5 rounded-full bg-cta py-1.5 pl-4 pr-1.5 text-[0.85rem] font-medium text-on-cta sm:mt-4 sm:py-2 sm:pl-5 sm:pr-2 sm:text-[1rem]">
-                    Open case study
-                    <span className="grid size-7 place-items-center rounded-full bg-on-cta text-blue sm:size-8">
-                      <ArrowUpRight className="size-3.5" />
-                    </span>
-                  </span>
-                </span>
-                {/* the sheet: the cover, which lifts a little out of the folder when it's the one in focus */}
+                {/* the sheet: the cover, lifting a little out of the folder when it's the one in focus */}
                 <span
                   ref={(el) => void (sheets.current[i] = el)}
-                  className="relative block overflow-hidden rounded-xl border border-white/15 shadow-[0_18px_40px_-18px_rgb(var(--rgb-shadow)/0.9)] will-change-transform"
+                  className="relative block overflow-hidden rounded-[1.25rem] shadow-[0_18px_40px_-18px_rgb(var(--rgb-shadow)/0.9)] will-change-transform"
                   style={{ height: CH }}
                 >
                   <span ref={(el) => void (imgs.current[i] = el)} className="absolute inset-0 block will-change-transform">
                     <ProjectCover project={proj} index={i} sizes={`${Math.round(CW)}px`} />
                   </span>
-                  {/* the frame in the brand blue, drawn as the project takes the stage */}
-                  <svg aria-hidden className="pointer-events-none absolute inset-0 size-full overflow-visible" viewBox={`0 0 ${CW} ${CH}`}>
-                    <rect
-                      ref={(el) => void (frames.current[i] = el)}
-                      x={1.5}
-                      y={1.5}
-                      width={FR.w}
-                      height={FR.h}
-                      rx={FR.r}
-                      fill="none"
-                      stroke="currentColor"
-                      className="text-blue-glow"
-                      strokeWidth={3}
-                      style={{ strokeDasharray: PER, strokeDashoffset: PER, opacity: 0 }}
-                    />
-                  </svg>
+                </span>
+                {/* the folder's front — a raised tab on the left (the number), the body under it */}
+                <span
+                  ref={(el) => void (fronts.current[i] = el)}
+                  className="folder-front absolute inset-x-0 block text-left"
+                  style={{ top: CH - TAB, height: PH, opacity: 0 }}
+                >
+                  <span aria-hidden className="folder-fill absolute left-0 top-0 w-[46%] rounded-t-[1.25rem]" style={{ height: TAB + 2 }} />
+                  <span aria-hidden className="folder-notch absolute left-[46%] size-4" style={{ top: TAB - 16 }} />
+                  <span aria-hidden className="folder-fill absolute inset-x-0 bottom-0 rounded-b-[1.25rem] rounded-tr-[1.25rem]" style={{ top: TAB }} />
+                  <span className="relative flex h-full flex-col px-4 pb-3.5 pt-2 sm:px-6 sm:pb-5 sm:pt-3">
+                    <span className="flex items-start justify-between">
+                      <span className="font-serif text-[2.1rem] leading-none text-sand sm:text-[2.8rem]">{String(i + 1).padStart(2, "0")}</span>
+                      <span className="mt-[calc(var(--tab)+0.2rem)] grid size-10 place-items-center rounded-full border border-white/25 text-ink sm:size-12" style={{ ["--tab" as string]: `${TAB - 8}px` }}>
+                        <ArrowUpRight className="size-4" />
+                      </span>
+                    </span>
+                    <span className="-mt-1 block truncate font-serif text-[1.55rem] leading-none text-ink sm:text-[2.1rem]">{proj.name}</span>
+                    <span className="mt-1.5 block truncate text-[0.9rem] text-ink-soft sm:text-[1.05rem]">{proj.what}</span>
+                    <span className="mt-auto block border-t border-white/15 pt-2.5 sm:pt-3.5">
+                      <span className="block truncate font-mono text-[10px] uppercase text-ink-soft">
+                        {proj.meta}
+                      </span>
+                    </span>
+                  </span>
                 </span>
                 {/* as an electron: its number + name, so the orbit reads as "more projects" */}
                 <span
@@ -606,7 +649,7 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
       {mobile && (
         <motion.div
           className="absolute z-[96] flex -translate-x-1/2 items-center gap-5"
-          style={{ left: fx, top: Math.min(fy + CH / 2 + CAPH + 2, vh - 64), opacity: show }}
+          style={{ left: fx, top: rowTop, opacity: show }}
         >
           <OrbitArrow dir={-1} can={index > 0} enabled={enabled} onGo={() => onIndex(index - 1)} />
           <span className="flex min-w-[4.5rem] flex-col items-center gap-2" aria-live="polite">
