@@ -323,7 +323,7 @@ export default function Hero() {
     { scale: 1, x: 0, y: Math.round(0.05 * vh) },
     // the same size and height in every reading layer — the photo is the constant
     { scale: 1, x: 0, y: Math.round(0.05 * vh) },
-    { scale: 1, x: desk.swap, y: Math.round(0.05 * vh) },
+    { scale: 1, x: 0, y: Math.round(0.05 * vh) },
     { scale: 0.78, x: desk.dx, y: desk.dy },
   ][chapter];
 
@@ -359,7 +359,7 @@ export default function Hero() {
             <div ref={copyCol} className="relative z-10 lg:order-1">
               <AnimatePresence mode="wait" initial={false}>
                 {chapter === 0 && <SurfaceChapter key="c0" shown={shown} instant={instant} desktop={!!desktop} done={done} reduce={reduce} />}
-                {chapter > 0 && chapter < 3 && <DeepChapter key={`c${chapter}`} i={chapter} x={chapter === 2 ? -desk.swap : 0} />}
+                {chapter > 0 && chapter < 3 && <DeepChapter key={`c${chapter}`} i={chapter} />}
               </AnimatePresence>
             </div>
           )}
