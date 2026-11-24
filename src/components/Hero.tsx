@@ -339,8 +339,8 @@ export default function Hero() {
           />
           <motion.div className="absolute inset-0 bg-abyss" style={{ opacity: abyss }} />
           <div className="absolute inset-0 bg-[radial-gradient(rgb(var(--rgb-glow)/var(--dots-a))_1px,transparent_1px)] [background-size:28px_28px] [mask-image:radial-gradient(ellipse_70%_60%_at_60%_50%,black,transparent)]" />
-          {/* (desktop only: on a phone, drifting dots only compete with the words) */}
-          {!mobile && <DepthParticles progress={p} reduce={reduce} />}
+          {/* (phones: the same dots, slower and without streaks) */}
+          <DepthParticles progress={p} reduce={reduce} calm={mobile} />
         </div>
 
         <motion.div animate={nudge} className="mx-auto h-full w-full max-w-6xl lg:grid lg:grid-cols-[1fr_1fr] lg:grid-rows-[minmax(0,1fr)] lg:items-center lg:gap-4 lg:px-8 lg:pb-[clamp(4rem,12svh,5rem)] lg:pt-[clamp(4.25rem,11svh,5.5rem)]">

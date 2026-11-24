@@ -125,7 +125,7 @@ export default function Navbar() {
               goToLayer(0);
             }}
             style={{ scale: logoScale, opacity: logoDim }}
-            className="shrink-0 origin-left whitespace-nowrap font-serif text-[1.65rem] leading-none tracking-[-0.01em] text-ink lg:font-script lg:tracking-normal transition-colors hover:text-blue-glow md:text-[2.6rem]"
+            className="shrink-0 origin-left whitespace-nowrap font-script text-[1.8rem] leading-none text-ink transition-colors hover:text-blue-glow md:text-[2.6rem]"
             aria-label="El-Dweik — back to top"
           >
             El-Dweik
