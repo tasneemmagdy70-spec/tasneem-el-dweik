@@ -125,7 +125,7 @@ export default function Navbar() {
               goToLayer(0);
             }}
             style={{ scale: logoScale, opacity: logoDim }}
-            className="shrink-0 origin-left whitespace-nowrap font-script text-[1.8rem] leading-none text-ink transition-colors hover:text-blue-glow md:text-[2.6rem]"
+            className="shrink-0 origin-left whitespace-nowrap font-serif text-[1.65rem] leading-none tracking-[-0.01em] text-ink lg:font-script lg:tracking-normal transition-colors hover:text-blue-glow md:text-[2.6rem]"
             aria-label="El-Dweik — back to top"
           >
             El-Dweik
@@ -343,23 +343,12 @@ export default function Navbar() {
             whileTap={{ scale: 0.92 }}
             className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-4 z-40 grid size-[4.75rem] place-items-center rounded-full bg-cta text-on-cta shadow-[0_14px_34px_-10px_rgb(var(--rgb-bright)/0.75),inset_0_1px_0_rgba(255,255,255,0.18)] sm:left-6 sm:size-[5.5rem] lg:hidden"
           >
-            {/* the ripple: a breath of light, every few seconds */}
-            {!reduce && (
-              <motion.span
-                aria-hidden
-                className="pointer-events-none absolute inset-0 rounded-full border border-blue-glow"
-                initial={{ scale: 1, opacity: 0 }}
-                animate={{ scale: [1, 1.5], opacity: [0.55, 0] }}
-                transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 3, ease: "easeOut", delay: 0.8 }}
-              />
-            )}
+            {/* (still: no ripple, no turning ring — it's found by its colour, not by moving) */}
             {/* the ring of words, turning slowly */}
             <motion.svg
               aria-hidden
               viewBox="0 0 100 100"
               className="pointer-events-none absolute inset-0 size-full"
-              animate={reduce ? undefined : { rotate: 360 }}
-              transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
             >
               <defs>
                 <path id="talk-ring" d="M50,50 m-37,0 a37,37 0 1,1 74,0 a37,37 0 1,1 -74,0" />

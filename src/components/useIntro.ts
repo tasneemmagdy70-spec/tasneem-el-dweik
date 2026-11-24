@@ -59,6 +59,8 @@ export function useIntro(isDesktop: boolean | null) {
     try {
       seen = sessionStorage.getItem(SEEN) === "1";
     } catch {}
+    // phones & tablets always get the short version: no loader to sit through, straight to the face
+    if (!isDesktop) seen = true;
     const L = LOAD_MS;
     const plan: [number, number][] = seen
       ? [

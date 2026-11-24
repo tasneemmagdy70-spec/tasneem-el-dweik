@@ -143,6 +143,32 @@ body {
   }
 }
 
+/* Phones & tablets: readable small print. The little uppercase labels (layer bar, captions,
+   tags, "next" hints) were set in the mono at 9–10px with wide letter-spacing — fine as texture
+   on a big screen, hard to read on a phone. Here they become Inter, at least 12px, letters
+   closer together. Desktop keeps its mono. */
+@media (max-width: 1023.98px) {
+  .font-mono {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    letter-spacing: 0.06em !important;
+  }
+  .font-mono.text-\[8px\],
+  .font-mono.text-\[9px\],
+  .font-mono.text-\[9\.5px\],
+  .font-mono.text-\[10px\],
+  .font-mono.text-\[10\.5px\],
+  .font-mono.text-\[11px\],
+  .font-mono.text-\[11\.5px\],
+  .font-mono.text-\[0\.66rem\] {
+    font-size: 12px !important;
+  }
+  /* nothing drifts behind the words */
+  .deep-particle {
+    display: none;
+  }
+}
+
 /* Visible keyboard focus everywhere */
 :focus-visible {
   outline: 2px solid var(--color-blue-glow);

@@ -12,7 +12,6 @@ import Loader from "./Loader";
 import { FEATURED } from "@/lib/projects";
 import { LAYERS, RAW_STOPS, goToLayer } from "@/lib/depth";
 import { useLayerPager } from "./useLayerPager";
-import { useTheme } from "@/lib/theme";
 import ProjectOrbit, { coreStage } from "./ProjectOrbit";
 import { CV_URL } from "@/lib/contact";
 
@@ -212,11 +211,11 @@ export default function Hero() {
   // deeper layers (mobile): the atom becomes atmosphere — blurred, dimmed, wordless
   // ("none" when sharp: a zero blur still costs a filter layer on every scroll frame of a phone)
   const mFilter = useTransform(mDeep, (d) => (d < 0.01 ? "none" : `blur(${(d * 12).toFixed(1)}px)`));
-  // in daylight the blurred atom must step further back, or navy copy over royal blue loses contrast
-  const theme = useTheme();
-  const mFade = useTransform(mDeep, [0, 1], [1, theme === "light" ? 0.4 : 0.6]);
+  // phones: the atom leaves the reading layers entirely — nothing moves behind the words you read
+  const mFade = useTransform(mDeep, [0, 1], [1, 0]);
   // orbit words: full on the first screen, quiet once the headline & actions take focus, gone deeper
-  const mWords = useTransform(p, [0, 0.075, 0.235, 0.25], [1, 0.4, 0.4, 0]);
+  // phones: no orbiting words — the first screen keeps only what matters (role, face, promise, actions)
+  const mWords = useMotionValue(0);
   // desktop keeps its words through the middle layers; the core belongs to the projects
   const dWords = useTransform(p, [0.74, 0.77], [1, 0]);
 
@@ -250,7 +249,7 @@ export default function Hero() {
   // back — the content itself shows that it scrolls. Twice at most, and never once you've moved.
   const nudge = useAnimationControls();
   useEffect(() => {
-    if (!done || reduce) return;
+    if (!done || reduce || mobile) return; // (phones: the page never moves on its own)
     let n = 0;
     let timer = 0;
     const arm = () => {
@@ -273,7 +272,7 @@ export default function Hero() {
       clearTimeout(timer);
       window.removeEventListener("scroll", stop);
     };
-  }, [done, reduce, nudge]);
+  }, [done, reduce, nudge, mobile]);
 
   /* ── desktop: where the atom must travel to sit centre-stage for the core ── */
   const nucWrap = useRef<HTMLDivElement>(null);
@@ -340,7 +339,8 @@ export default function Hero() {
           />
           <motion.div className="absolute inset-0 bg-abyss" style={{ opacity: abyss }} />
           <div className="absolute inset-0 bg-[radial-gradient(rgb(var(--rgb-glow)/var(--dots-a))_1px,transparent_1px)] [background-size:28px_28px] [mask-image:radial-gradient(ellipse_70%_60%_at_60%_50%,black,transparent)]" />
-          <DepthParticles progress={p} reduce={reduce} />
+          {/* (desktop only: on a phone, drifting dots only compete with the words) */}
+          {!mobile && <DepthParticles progress={p} reduce={reduce} />}
         </div>
 
         <motion.div animate={nudge} className="mx-auto h-full w-full max-w-6xl lg:grid lg:grid-cols-[1fr_1fr] lg:grid-rows-[minmax(0,1fr)] lg:items-center lg:gap-4 lg:px-8 lg:pb-[clamp(4rem,12svh,5rem)] lg:pt-[clamp(4.25rem,11svh,5.5rem)]">
@@ -467,7 +467,7 @@ export default function Hero() {
             <span className="text-blue-glow">{LAYERS[chapter].n}</span>
             {/* a fixed slot (as wide as the longest name), so the bar never stretches or shrinks
                 when the name changes — only its fill moves */}
-            <span className="w-[6.6rem] shrink-0 truncate whitespace-nowrap text-ink sm:w-[7.9rem]">{LAYERS[chapter].name}</span>
+            <span className="w-[7.4rem] shrink-0 truncate whitespace-nowrap text-ink sm:w-[8.6rem]">{LAYERS[chapter].name}</span>
             <span className="-my-3 flex min-w-0 flex-1 items-center gap-[3px]">
               {LAYERS.map((l, i) => (
                 <button
