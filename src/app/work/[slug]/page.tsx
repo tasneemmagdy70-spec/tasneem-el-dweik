@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { IBM_Plex_Sans } from "next/font/google";
+import { Almarai, IBM_Plex_Sans } from "next/font/google";
 import { CASE_STUDIES, caseStudy, type Figure } from "@/lib/case-studies";
 import { FEATURED } from "@/lib/projects";
+import { CASE_STRINGS } from "@/lib/case-i18n";
 import { BTN_PRIMARY_MD, BTN_PRIMARY_MD_ICON } from "@/lib/ui";
 import { ArrowUpRight } from "@/components/icons";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -15,7 +16,9 @@ import ArtifactZoom from "@/components/case/ArtifactZoom";
 
 // each project's own typeface, for its design-system specimen (Inter is the site's own font)
 const plex = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "700"], display: "swap" });
-const FONT_CLASS: Record<string, string> = { "IBM Plex Sans": plex.className, Inter: "font-sans" };
+// Arabic case studies are set in Almarai throughout (the site's own fonts have no Arabic)
+const almarai = Almarai({ subsets: ["arabic"], weight: ["300", "400", "700", "800"], display: "swap", variable: "--font-almarai" });
+const FONT_CLASS: Record<string, string> = { "IBM Plex Sans": plex.className, Inter: "font-sans", Almarai: almarai.className };
 
 // every case study is prerendered (generateStaticParams); an unknown slug simply 404s,
 // so the route may wait for its params rather than stream a placeholder
@@ -37,10 +40,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const c = caseStudy(slug);
   if (!c) return {};
+  const t = CASE_STRINGS[c.lang ?? "en"];
   return {
-    title: `${c.name} — Case study · Tasneem El-Dweik`,
+    title: `${c.name} — ${t.caseStudy} · Tasneem El-Dweik`,
     description: c.tagline,
-    openGraph: { title: `${c.name} — Case study`, description: c.tagline, images: [{ url: c.cover.src, width: c.cover.w, height: c.cover.h }] },
+    openGraph: { title: `${c.name} — ${t.caseStudy}`, description: c.tagline, images: [{ url: c.cover.src, width: c.cover.w, height: c.cover.h }] },
   };
 }
 
@@ -49,7 +53,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
   const c = caseStudy(slug);
   if (!c) notFound();
 
-  const at = FEATURED.findIndex((p) => p.name === c.name);
+  const at = FEATURED.findIndex((p) => p.caseStudy === `/work/${c.slug}`);
   const nextProject = FEATURED[(at + 1) % FEATURED.length];
   const nextHref = nextProject.caseStudy ?? nextProject.href;
   const nextExternal = !nextProject.caseStudy;
@@ -60,25 +64,29 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
   const system = c.system;
   // sections are numbered in the order they appear; a project without one simply skips it
   const nScreens = system ? "04" : "03";
-  const noun = c.screens.noun ?? "screens";
+  const lang = c.lang ?? "en";
+  const rtl = lang === "ar";
+  const t = CASE_STRINGS[lang];
+  const noun = c.screens.noun ?? t.screens;
+  const screensNote = (shown: number, total?: string) => t.count(shown, total, noun);
 
   return (
-    <div className="relative min-h-screen bg-paper text-ink">
+    <div lang={lang} dir={rtl ? "rtl" : "ltr"} className={`relative min-h-screen bg-paper text-ink ${rtl ? almarai.variable + " " + almarai.className : ""}`}>
       {/* ── top bar, stuck to the top while you scroll: back to the projects (left), home, the theme — and a hairline of reading progress ── */}
       <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-paper/85 backdrop-blur-md">
         <div className={`mx-auto flex h-16 max-w-6xl items-center justify-between ${GUTTER}`}>
           <div className="flex items-center gap-3 sm:gap-4">
             <Link
               href="/#best-work"
-              aria-label="Back to projects"
-              title="Back to projects"
-              className="-ml-1 grid size-10 place-items-center rounded-full border border-white/15 text-ink transition-[border-color,transform,color] duration-300 hover:-translate-x-0.5 hover:border-blue-glow/60 hover:text-blue-glow active:scale-95"
+              aria-label={t.back}
+              title={t.back}
+              className="-ms-1 grid size-10 place-items-center rounded-full border border-white/15 text-ink transition-[border-color,transform,color] duration-300 hover:-translate-x-0.5 hover:border-blue-glow/60 hover:text-blue-glow active:scale-95 rtl:hover:translate-x-0.5"
             >
-              <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <svg viewBox="0 0 16 16" className="size-4 rtl:rotate-180" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M13 8H3M7.5 3.5 3 8l4.5 4.5" />
               </svg>
             </Link>
-            <Link href="/" className="font-script text-[1.7rem] leading-none text-ink transition-colors hover:text-blue-glow" aria-label="El-Dweik — home">
+            <Link href="/" className="font-script text-[1.7rem] leading-none text-ink transition-colors hover:text-blue-glow" aria-label={t.home} dir="ltr">
               El-Dweik
             </Link>
           </div>
@@ -100,7 +108,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
                 <p className="mt-5 max-w-md text-[1.1rem] leading-snug text-ink-soft sm:text-[1.2rem]">{c.tagline}</p>
                 {/* what the project covers — a slow loop of chips, faded at both edges */}
                 <div className="case-marquee-wrap mt-7 overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)]">
-                  <ul className="case-marquee flex w-max gap-2" aria-label="What the project covers">
+                  <ul className="case-marquee flex w-max gap-2" aria-label={t.chips}>
                     {[...c.chips, ...c.chips].map((x, i) => (
                       <li
                         key={i}
@@ -116,13 +124,13 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
 
               <Reveal delay={120}>
                 <div className="rounded-3xl border border-white/10 bg-panel/50 p-7 sm:p-8 lg:p-9">
-                  <p className="font-mono text-[11px] uppercase text-blue-glow">The problem</p>
+                  <p className="font-mono text-[11px] uppercase text-blue-glow">{t.problem}</p>
                   <p className="mt-4 font-serif text-[clamp(1.6rem,3.2vw,2.25rem)] leading-[1.12] tracking-[-0.01em]">
                     {c.problem.before}
                     <span className="italic text-blue-glow">{c.problem.lit}</span>
                     {c.problem.after}
                   </p>
-                  <p className="mt-6 border-l-2 border-sand pl-4 text-[0.98rem] italic leading-relaxed text-ink-soft">“{c.problem.quote}”</p>
+                  <p className="mt-6 border-s-2 border-sand ps-4 text-[0.98rem] italic leading-relaxed text-ink-soft">{rtl ? `«${c.problem.quote}»` : `“${c.problem.quote}”`}</p>
                 </div>
               </Reveal>
             </div>
@@ -130,9 +138,9 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         </section>
 
         {/* ── UX process: the research behind the screens — numbers, five phases with their artifacts, what we learned ── */}
-        <Band label="UX process" n="01">
+        <Band label={t.uxProcess} n="01">
           <p className="max-w-xl text-[1.05rem] leading-relaxed text-ink-soft">
-            Design thinking, end to end. Every screen further down traces back to one of these steps.
+            {t.uxIntro}
           </p>
 
           <Reveal>
@@ -154,7 +162,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
               <li key={p.name} className="group/card w-[72%] shrink-0 snap-start sm:w-[40%] lg:w-auto">
                 <Reveal delay={i * 70} className="h-full">
                   <article className={`flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-panel/50 ${LIFT}`}>
-                    <ArtifactZoom figure={p.figure} label={`${p.name} · ${p.methods[0]}`} accent={accent} />
+                    <ArtifactZoom figure={p.figure} label={`${p.name} · ${p.methods[0]}`} accent={accent} viewLabel={t.view} openLabel={t.open} closeLabel={t.close} />
                     <div className="flex flex-1 flex-col p-5">
                       <p className="font-mono text-[11px] uppercase text-blue-glow">0{i + 1}</p>
                       <h3 className="mt-1 font-serif text-[1.35rem] leading-tight">{p.name}</h3>
@@ -173,7 +181,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
             ))}
           </SnapStrip>
 
-          <Sub title="What research told us" className="mt-12 lg:mt-16" />
+          <Sub title={t.researchTold} className="mt-12 lg:mt-16" />
           <div className="grid gap-4 md:grid-cols-3">
             {c.process.insights.map((x, i) => (
               <Reveal key={x.title} delay={i * 80}>
@@ -187,7 +195,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         </Band>
 
         {/* ── key decisions: a picture and one line of "why" each (swipe on phones) ── */}
-        <Band label="Key decisions" n="02">
+        <Band label={t.keyDecisions} n="02">
           <SnapStrip className="lg:grid-cols-3 lg:gap-5 lg:pb-0">
             {c.decisions.map((d, i) => (
               <li key={d.title} className={SWIPE_ITEM}>
@@ -216,11 +224,11 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
 
         {/* ── design system: grouped like a spec — colour and type, then grid & icons, components or the brand ── */}
         {system && (
-        <Band label="Design system" n="03">
+        <Band label={t.designSystem} n="03">
           <div className="grid gap-4 md:grid-cols-12">
             {/* colour */}
             <Reveal className="md:col-span-7">
-              <Spec title="Color">
+              <Spec title={t.color}>
                 <div
                   className="grid grid-cols-[repeat(var(--mcols),minmax(0,1fr))] gap-x-2.5 gap-y-5 sm:grid-cols-[repeat(var(--cols),minmax(0,1fr))] sm:gap-3"
                   style={{ "--cols": system.colors.length, "--mcols": system.colors.length > 4 ? 3 : system.colors.length } as React.CSSProperties}
@@ -229,7 +237,9 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
                     <div key={col.hex}>
                       <div className="h-24 rounded-xl ring-1 ring-white/10 sm:h-32" style={{ background: col.hex }} />
                       <p className="mt-2.5 text-[0.82rem] leading-tight text-ink sm:text-[0.88rem]">{col.name}</p>
-                      <p className="font-mono text-[11px] uppercase text-ink-soft">{col.hex}</p>
+                      <p className="font-mono text-[11px] uppercase text-ink-soft">
+                        <span dir="ltr">{col.hex}</span>
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -238,19 +248,19 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
 
             {/* type: the scale, or the weights in use */}
             <Reveal delay={90} className="md:col-span-5">
-              <Spec title="Type">
+              <Spec title={t.type}>
                 <div className={`flex items-end justify-between gap-4 ${FONT_CLASS[system.font] ?? ""}`}>
                   <div>
                     <p className="text-[4rem] font-bold leading-[0.9]" style={{ color: accent }}>
-                      Aa
+                      {system.specimen ?? "Aa"}
                     </p>
                     <p className="mt-2 text-[1.05rem] font-bold">{system.font}</p>
                   </div>
-                  <ul className="space-y-1 text-right">
+                  <ul className="space-y-1 text-end">
                     {system.sizes?.map((s) => (
                       <li key={s} className="leading-none" style={{ fontSize: Math.round(s * 0.62) }}>
                         {s}
-                        <span className="ml-1 font-mono text-[10px] text-ink-soft">px</span>
+                        <span className="ms-1 font-mono text-[10px] text-ink-soft">px</span>
                       </li>
                     ))}
                     {system.weights?.map((w) => (
@@ -266,7 +276,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
             {/* grid & icons — the grid drawn over real screens, and the project's own icons */}
             {(system.grid || system.icons) && (
               <Reveal className="md:col-span-5">
-                <Spec title="Grid & icons">
+                <Spec title={t.gridIcons}>
                   {system.grid && (
                     <div className="flex items-end gap-3">
                       <GridOnScreen figure={system.grid.mobile} cols={4} className="w-[26%]" label="4 col" accent={accent} />
@@ -292,7 +302,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
             {/* components */}
             {system.components && (
               <Reveal delay={90} className="md:col-span-7">
-                <Spec title="Components" flush>
+                <Spec title={t.components} flush>
                   <div className="relative h-56 overflow-hidden rounded-xl bg-white sm:h-72 md:h-full md:min-h-[13rem]">
                     <Image src={system.components.src} alt={system.components.alt} fill sizes="(min-width: 1024px) 640px, 100vw" className="object-cover object-[center_95%]" />
                   </div>
@@ -303,7 +313,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
             {/* brand — the logo and identity, wide */}
             {system.brand && (
               <Reveal className="md:col-span-12">
-                <Spec title="Brand" flush>
+                <Spec title={t.brand} flush>
                   <div className="relative h-48 overflow-hidden rounded-xl bg-white sm:h-64 lg:h-72">
                     <Image src={system.brand.src} alt={system.brand.alt} fill sizes="(min-width: 1024px) 1100px, 100vw" className="object-cover object-center" />
                   </div>
@@ -316,14 +326,14 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         )}
 
         {/* ── final screens: phones in a row, then the web app and the dashboard in browser frames ── */}
-        <Band label={c.screens.title ?? "Final screens"} n={nScreens}>
-          <Sub title="Mobile" note={screensNote(c.screens.mobile.reduce((n, f) => n + f.shots.length, 0), c.screens.totals.mobile, noun)} />
+        <Band label={c.screens.title ?? t.finalScreens} n={nScreens}>
+          <Sub title={t.mobile} note={screensNote(c.screens.mobile.reduce((n, f) => n + f.shots.length, 0), c.screens.totals.mobile)} />
           <div className="space-y-4">
             {c.screens.mobile.map((flow, f) => (
               <Reveal key={flow.title}>
                 <div className="grid gap-6 overflow-hidden rounded-3xl border border-white/10 bg-panel/40 p-5 sm:p-8 md:grid-cols-[13rem_1fr] md:items-center md:gap-8 lg:grid-cols-[15rem_1fr] lg:gap-12 lg:p-10">
                   <div>
-                    <p className="font-mono text-[11px] uppercase text-blue-glow">Flow 0{f + 1}</p>
+                    <p className="font-mono text-[11px] uppercase text-blue-glow">{t.flow} 0{f + 1}</p>
                     <h4 className="mt-2 font-serif text-[1.5rem] leading-tight">{flow.title}</h4>
                     <p className="mt-2 text-[0.95rem] leading-relaxed text-ink-soft">{flow.note}</p>
                   </div>
@@ -331,7 +341,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
                     {flow.shots.map((s, i) => (
                       <div
                         key={s.src}
-                        className={`relative w-[29%] shrink-0 transition-transform duration-500 ease-out-expo hover:z-20 hover:-translate-y-2 sm:w-[27%] md:w-[25%] ${i ? "-ml-[5.3%] sm:-ml-[2.6%] md:ml-[2%]" : ""} ${i % 2 ? "translate-y-4 md:translate-y-6" : ""}`}
+                        className={`relative w-[29%] shrink-0 transition-transform duration-500 ease-out-expo hover:z-20 hover:-translate-y-2 sm:w-[27%] md:w-[25%] ${i ? "-ms-[5.3%] sm:-ms-[2.6%] md:ms-[2%]" : ""} ${i % 2 ? "translate-y-4 md:translate-y-6" : ""}`}
                         style={{ zIndex: 10 - Math.abs(i - 1) }}
                       >
                         <Phone figure={s} />
@@ -345,7 +355,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
 
           {c.screens.web && (
             <>
-              <Sub title="Web" note={screensNote(c.screens.web.length, c.screens.totals.web, noun)} className="mt-14 lg:mt-20" />
+              <Sub title={t.web} note={screensNote(c.screens.web.length, c.screens.totals.web)} className="mt-14 lg:mt-20" />
               <Reveal>
                 <Collection shots={c.screens.web} />
               </Reveal>
@@ -354,7 +364,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
 
           {c.screens.dashboard && (
             <>
-              <Sub title="Admin dashboard" note={screensNote(c.screens.dashboard.length, c.screens.totals.dashboard, noun)} className="mt-14 lg:mt-20" />
+              <Sub title={t.dashboard} note={screensNote(c.screens.dashboard.length, c.screens.totals.dashboard)} className="mt-14 lg:mt-20" />
               <Reveal>
                 <Collection shots={c.screens.dashboard} mirror />
               </Reveal>
@@ -381,18 +391,18 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
 
             <Reveal delay={90} className="mt-16">
               <div className="flex flex-col gap-5 rounded-3xl border border-white/10 bg-panel/50 p-7 sm:p-9 lg:flex-row lg:items-center lg:justify-between">
-                <p className="font-serif text-[clamp(1.5rem,2.6vw,2rem)] leading-tight">The full process is on Behance.</p>
+                <p className="font-serif text-[clamp(1.5rem,2.6vw,2rem)] leading-tight">{t.fullProcess}</p>
                 <a href={c.behance} target="_blank" rel="noopener noreferrer" className={`${BTN_PRIMARY_MD} self-start lg:self-auto`}>
-                  Open on Behance
+                  {t.openBehance}
                   <span className={BTN_PRIMARY_MD_ICON}>
                     <ArrowUpRight className="size-3.5" />
                   </span>
                 </a>
               </div>
               {/* previous / next project — two small arrows, the way you'd flip a page */}
-              <nav aria-label="More projects" className="mt-12 flex items-center justify-between gap-4">
-                <ProjectArrow dir="prev" href={prevHref} external={prevExternal} name={prevProject.name} />
-                <ProjectArrow dir="next" href={nextHref} external={nextExternal} name={nextProject.name} />
+              <nav aria-label={t.moreProjects} className="mt-12 flex items-center justify-between gap-4">
+                <ProjectArrow dir="prev" label={t.prev} href={prevHref} external={prevExternal} name={prevProject.name} />
+                <ProjectArrow dir="next" label={t.next} href={nextHref} external={nextExternal} name={nextProject.name} />
               </nav>
             </Reveal>
           </div>
@@ -418,12 +428,6 @@ function Band({ n, label, children }: { n: string; label: string; children: Reac
       </div>
     </section>
   );
-}
-
-/** "12 of 40+ screens", or "all 8 screens" when every one is shown. */
-function screensNote(shown: number, total?: string, noun = "screens") {
-  if (!total) return `${shown} ${noun}`;
-  return shown >= Number(total) ? `all ${total} ${noun}` : `${shown} of ${total} ${noun}`;
 }
 
 /** A small label above a group, with an optional note (e.g. how many screens are shown). */
@@ -532,23 +536,23 @@ function Browser({ figure, large = false, className = "" }: { figure: Figure; la
 }
 
 /** Previous / next project: a small circled arrow and the project's name. */
-function ProjectArrow({ dir, href, external, name }: { dir: "prev" | "next"; href: string; external: boolean; name: string }) {
+function ProjectArrow({ dir, label, href, external, name }: { dir: "prev" | "next"; label: string; href: string; external: boolean; name: string }) {
   const next = dir === "next";
   return (
     <a
       href={href}
       {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-      className={`group/arrow flex min-h-11 items-center gap-3 ${next ? "flex-row-reverse text-right" : ""}`}
+      className={`group/arrow flex min-h-11 items-center gap-3 ${next ? "flex-row-reverse text-end" : ""}`}
     >
       <span
-        className={`grid size-11 shrink-0 place-items-center rounded-full border border-white/15 text-ink transition-[border-color,transform,color] duration-300 group-hover/arrow:border-blue-glow/60 group-hover/arrow:text-blue-glow group-active/arrow:scale-95 ${next ? "group-hover/arrow:translate-x-0.5" : "group-hover/arrow:-translate-x-0.5"}`}
+        className={`grid size-11 shrink-0 place-items-center rounded-full border border-white/15 text-ink transition-[border-color,transform,color] duration-300 group-hover/arrow:border-blue-glow/60 group-hover/arrow:text-blue-glow group-active/arrow:scale-95 ${next ? "group-hover/arrow:translate-x-0.5 rtl:group-hover/arrow:-translate-x-0.5" : "group-hover/arrow:-translate-x-0.5 rtl:group-hover/arrow:translate-x-0.5"}`}
       >
-        <svg viewBox="0 0 16 16" className={`size-4 ${next ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <svg viewBox="0 0 16 16" className={`size-4 ${next ? "rotate-180 rtl:rotate-0" : "rtl:rotate-180"}`} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <path d="M13 8H3M7.5 3.5 3 8l4.5 4.5" />
         </svg>
       </span>
       <span>
-        <span className="block font-mono text-[11px] uppercase text-ink-soft">{next ? "Next" : "Previous"}</span>
+        <span className="block font-mono text-[11px] uppercase text-ink-soft">{label}</span>
         <span className="block text-[0.98rem] font-semibold leading-tight text-ink">{name}</span>
       </span>
     </a>

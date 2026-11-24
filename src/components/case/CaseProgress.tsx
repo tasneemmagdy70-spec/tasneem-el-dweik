@@ -27,7 +27,7 @@ export default function CaseProgress() {
   return (
     <span
       aria-hidden
-      className="absolute bottom-0 left-0 h-[2px] bg-blue-glow transition-[width] duration-150"
+      className="absolute bottom-0 start-0 h-[2px] bg-blue-glow transition-[width] duration-150"
       style={{ width: `${progress * 100}%` }}
     />
   );

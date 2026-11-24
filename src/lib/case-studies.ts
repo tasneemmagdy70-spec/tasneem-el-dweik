@@ -11,6 +11,7 @@ export type Icon = { name: string; viewBox: string; body: string };
 
 export type CaseStudy = {
   slug: string;
+  lang?: "en" | "ar"; // the language the case study is written in (Arabic reads right-to-left)
   n: string; // its number among the featured projects
   name: string;
   tagline: string; // ≤ 12 words
@@ -31,6 +32,7 @@ export type CaseStudy = {
   system?: {
     colors: { hex: string; name: string }[]; // the first is the brand colour
     font: string;
+    specimen?: string; // the letters shown big ("Aa" by default)
     sizes?: number[]; // the type scale…
     weights?: { name: string; value: number }[]; // …or the weights in use
     grid?: { mobile: Figure; desktop: Figure }; // real screens, the column grid drawn over them
@@ -58,6 +60,7 @@ export type CaseStudy = {
 const IMG = "/images/work/novu";
 const SANAA = "/images/work/sanaa";
 const SAKNNY = "/images/work/saknny";
+const KHOTA = "/images/work/khota";
 
 export const CASE_STUDIES: CaseStudy[] = [
   {
@@ -419,6 +422,135 @@ export const CASE_STUDIES: CaseStudy[] = [
       { value: "5", label: "problems uncovered" },
       { value: "8", label: "solution features" },
       { value: "3", label: "user groups" },
+    ],
+  },
+  {
+    slug: "khota",
+    lang: "ar",
+    n: "03",
+    name: "خُطى",
+    tagline: "رفيقك في رمضان: ختمة منظّمة وأذكار وصدقة في تطبيق واحد.",
+    behance: "https://www.behance.net/gallery/246106691/_",
+    chips: ["بحث تجربة المستخدم", "تصميم الواجهات", "تطبيق موبايل", "عربي أولًا", "رمضان", "مقابلات المستخدمين", "استبيان", "تحليل المنافسين", "اختبار قابلية الاستخدام", "اختبار A/B"],
+    cover: { src: `${KHOTA}/cover.webp`, w: 1208, h: 1141, alt: "دراسة حالة تطبيق خُطى." },
+    accent: "#7B4D35",
+    process: {
+      stats: [
+        { value: "100%", label: "يريدون كل العبادات في تطبيق واحد" },
+        { value: "56%", label: "يفتحون التطبيق حين يحتاجون تذكيرًا" },
+        { value: "4", label: "تطبيقات منافسة حُلِّلت" },
+        { value: "3", label: "مهام في اختبار Maze" },
+      ],
+      phases: [
+        {
+          name: "فهم المستخدم",
+          methods: ["مقابلة صاحب المشروع", "تحليل المنافسين وSWOT", "مقابلات المستخدمين", "استبيان"],
+          figure: { src: `${KHOTA}/ux/survey.webp`, w: 1208, h: 1582, alt: "نتائج الاستبيان: الفئة العمرية، وطريقة التبرع، ومتى يُفتح التطبيق الديني." },
+        },
+        {
+          name: "تحديد المشكلة",
+          methods: ["بيان المشكلة", "شخصية المستخدم", "خريطة التعاطف", "رحلة المستخدم"],
+          figure: { src: `${KHOTA}/ux/empathy-map.webp`, w: 1208, h: 1024, alt: "خريطة التعاطف: ماذا تقول المستخدمة وتفعل وتفكر وتشعر." },
+        },
+        {
+          name: "توليد الأفكار",
+          methods: ["تحديد الأولويات", "القيمة المقترحة", "هيكلة المعلومات", "مسار المستخدم"],
+          figure: { src: `${KHOTA}/ux/value-proposition.webp`, w: 1208, h: 671, alt: "القيمة المقترحة: احتياجات المستخدم مقابل ما يقدمه التطبيق." },
+        },
+        {
+          name: "التصميم",
+          methods: ["تصميم مبدئي (Low-fi)", "نموذج متوسط الدقة (Mid-fi)", "نموذج عالي الدقة (Hi-fi)", "نظام التصميم"],
+          figure: { src: `${KHOTA}/ux/high-fidelity.webp`, w: 1208, h: 1800, alt: "شاشات خُطى عالية الدقة." },
+        },
+        {
+          name: "الاختبار",
+          methods: ["تقييم بمبادئ نيلسن", "اختبار قابلية الاستخدام (Maze)", "اختبار A/B"],
+          figure: { src: `${KHOTA}/ux/usability-test.webp`, w: 1208, h: 738, alt: "نتائج اختبار قابلية الاستخدام على Maze: ثلاث مهام وما كشفته." },
+        },
+      ],
+      insights: [
+        { title: "المشكلة في الاستمرار لا في البداية", body: "النية موجودة، لكنهم يحتاجون من يساعدهم على المواصلة بعد أول أسبوع." },
+        { title: "الورد الفائت لا يضيع", body: "يريدون أن يتوزّع ما فاتهم تلقائيًا على الأيام الباقية من الختمة." },
+        { title: "الثقة أولًا في الصدقة", body: "يتبرعون لمن يعرفونه، وأكثر ما يقلقهم في التبرع أونلاين هو الثقة." },
+      ],
+    },
+    problem: {
+      before: "النية في رمضان قوية، لكن ",
+      lit: "الالتزام يضعف بعد أول أسبوع",
+      after: " بسبب ضغط الحياة وغياب التنظيم.",
+      quote: "بنسى أقرا الورد، محتاجة حاجة تفكّرني",
+    },
+    decisions: [
+      {
+        title: "ختمة تُحسَب وحدها",
+        why: "تحدد الهدف والمدة فيُحسب وردك اليومي، ويُوزَّع ما فاتك تلقائيًا، وحدك أو مع أصدقائك.",
+        figure: { src: `${KHOTA}/decisions/khatma.webp`, w: 1400, h: 875, alt: "شاشتا إنشاء خطة ختمة والختمة الجماعية." },
+      },
+      {
+        title: "شاشة رئيسية بستة أزرار فقط",
+        why: "في اختبار A/B اختار المستخدمون النسخة المركّزة: أوضح، وتُستخدم بيد واحدة دون تمرير.",
+        figure: { src: `${KHOTA}/decisions/ab-test.webp`, w: 1400, h: 875, alt: "اختبار A/B: لوحة مركّزة بستة أزرار مقابل لوحة شاملة بتسعة." },
+      },
+      {
+        title: "مدة الختمة بالأيام لا بالشهور",
+        why: "كشف اختبار Maze حاجة إلى مرونة أكبر، فصار المستخدم يحدد عدد الأيام بنفسه.",
+        figure: { src: `${KHOTA}/decisions/before-after.webp`, w: 1400, h: 875, alt: "قبل وبعد: إضافة خيار الأيام في خطة الختمة." },
+      },
+    ],
+    system: {
+      colors: [
+        { hex: "#7B4D35", name: "بني داكن" },
+        { hex: "#CC9B76", name: "كراميل" },
+        { hex: "#F0E6D2", name: "رملي" },
+        { hex: "#FEFBF4", name: "كريمي" },
+        { hex: "#2C2C2C", name: "فحمي" },
+      ],
+      font: "Almarai",
+      specimen: "أبجد",
+      weights: [
+        { name: "عادي", value: 400 },
+        { name: "عريض", value: 700 },
+        { name: "عريض جدًا", value: 800 },
+      ],
+    },
+    screens: {
+      mobile: [
+        {
+          title: "عباداتك اليومية",
+          note: "الصلاة القادمة والآية اليومية، والأذكار والتسبيح بلمسة.",
+          shots: [
+            { src: `${KHOTA}/screens/home.webp`, w: 393, h: 852, alt: "الشاشة الرئيسية: الصلاة القادمة والآية اليومية والعبادات." },
+            { src: `${KHOTA}/screens/azkar.webp`, w: 393, h: 852, alt: "قائمة الأذكار." },
+            { src: `${KHOTA}/screens/duaa.webp`, w: 393, h: 852, alt: "أذكار الصباح." },
+            { src: `${KHOTA}/screens/tasbeeh.webp`, w: 393, h: 852, alt: "التسبيح الإلكتروني." },
+          ],
+        },
+        {
+          title: "الختمة",
+          note: "ابدأ ختمة وحدك أو مع أصدقائك، واقرأ من حيث توقفت.",
+          shots: [
+            { src: `${KHOTA}/screens/khatma.webp`, w: 393, h: 852, alt: "الختمة قبل إنشاء أول خطة." },
+            { src: `${KHOTA}/screens/khatma2.webp`, w: 393, h: 852, alt: "إنشاء خطة ختمة جديدة." },
+            { src: `${KHOTA}/screens/khatma3.webp`, w: 393, h: 852, alt: "إنشاء ختمة جماعية مع الأصدقاء." },
+            { src: `${KHOTA}/screens/aya.webp`, w: 393, h: 852, alt: "قراءة سورة الفاتحة." },
+          ],
+        },
+        {
+          title: "رمضان والتذكيرات",
+          note: "عدّاد للفجر والإفطار، ومتابعة للصيام، وتذكيرات هادئة.",
+          shots: [
+            { src: `${KHOTA}/screens/ramadan.webp`, w: 393, h: 852, alt: "رمضان: العد التنازلي للفجر ومتابعة الصيام." },
+            { src: `${KHOTA}/screens/notifications.webp`, w: 393, h: 852, alt: "الإشعارات: تذكير بالورد وتهنئة بالاستمرار." },
+          ],
+        },
+      ],
+      totals: { mobile: "30+" },
+    },
+    impact: [
+      { value: "\u206630+\u2069", label: "شاشة عالية الدقة" },
+      { value: "5", label: "مراحل تفكير تصميمي" },
+      { value: "12", label: "سؤالًا في مقابلات المستخدمين" },
+      { value: "1", label: "اختبار A/B حسم الشاشة الرئيسية" },
     ],
   },
 ];

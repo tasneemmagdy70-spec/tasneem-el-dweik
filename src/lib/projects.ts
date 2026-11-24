@@ -43,6 +43,7 @@ export const FEATURED: Project[] = [
     meta: "Mobile · Arabic-first",
     hue: 32,
     href: `${BE}/246106691/_`,
+    caseStudy: "/work/khota",
     image: "/images/projects/khota.webp",
   },
   {

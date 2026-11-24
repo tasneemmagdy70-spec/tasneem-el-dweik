@@ -8,7 +8,21 @@ import type { Figure } from "@/lib/case-studies";
  * A research artifact shown as a cropped thumbnail; tap it to open the whole sheet
  * (affinity map, wireframes…) in a dialog you can scroll through, then close.
  */
-export default function ArtifactZoom({ figure, label, accent = "#895CDD" }: { figure: Figure; label: string; accent?: string }) {
+export default function ArtifactZoom({
+  figure,
+  label,
+  accent = "#895CDD",
+  viewLabel = "View",
+  openLabel = "Open",
+  closeLabel = "Close",
+}: {
+  figure: Figure;
+  label: string;
+  accent?: string;
+  viewLabel?: string;
+  openLabel?: string;
+  closeLabel?: string;
+}) {
   const ref = useRef<HTMLDialogElement>(null);
   return (
     <>
@@ -16,7 +30,7 @@ export default function ArtifactZoom({ figure, label, accent = "#895CDD" }: { fi
         type="button"
         onClick={() => ref.current?.showModal()}
         className="group/zoom relative block aspect-[4/3] w-full overflow-hidden bg-white text-left"
-        aria-label={`Open ${label}`}
+        aria-label={`${openLabel} ${label}`}
       >
         <Image
           src={figure.src}
@@ -25,12 +39,12 @@ export default function ArtifactZoom({ figure, label, accent = "#895CDD" }: { fi
           sizes="(min-width: 1024px) 220px, 80vw"
           className="object-cover object-top transition-transform duration-700 ease-out-expo group-hover/zoom:scale-[1.05]"
         />
-        <span className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[10px] uppercase text-[#fff] shadow-[0_4px_12px_-4px_rgba(0,0,0,0.35)] transition-[filter,transform] group-hover/zoom:scale-105 group-hover/zoom:brightness-90" style={{ background: accent }}>
+        <span className="absolute bottom-2.5 end-2.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[10px] uppercase text-[#fff] shadow-[0_4px_12px_-4px_rgba(0,0,0,0.35)] transition-[filter,transform] group-hover/zoom:scale-105 group-hover/zoom:brightness-90" style={{ background: accent }}>
           <svg viewBox="0 0 16 16" className="size-3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
             <circle cx="7" cy="7" r="4.5" />
             <path d="m10.5 10.5 3 3M7 5v4M5 7h4" />
           </svg>
-          View
+          {viewLabel}
         </span>
       </button>
 
@@ -45,7 +59,7 @@ export default function ArtifactZoom({ figure, label, accent = "#895CDD" }: { fi
             type="button"
             onClick={() => ref.current?.close()}
             className="grid size-10 place-items-center rounded-full border border-white/15 transition-colors hover:border-blue-glow/60 hover:text-blue-glow"
-            aria-label="Close"
+            aria-label={closeLabel}
           >
             <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
               <path d="m4 4 8 8M12 4l-8 8" />

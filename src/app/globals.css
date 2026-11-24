@@ -241,6 +241,32 @@ body {
 .case-marquee {
   animation: case-marquee 38s linear infinite;
 }
+/* right-to-left pages: the row starts at the right, so it drifts the other way */
+@keyframes case-marquee-rtl {
+  to {
+    transform: translateX(50%);
+  }
+}
+[dir="rtl"] .case-marquee {
+  animation-name: case-marquee-rtl;
+}
+/* Arabic case studies: one Arabic face for everything (the display serif and the mono have no
+   Arabic), no italics or tracking (they break the joined letters) */
+[lang="ar"] .font-serif,
+[lang="ar"] .font-mono {
+  font-family: var(--font-almarai), system-ui, sans-serif;
+}
+/* Arabic letters need more size than Latin capitals to read at label sizes */
+[lang="ar"] .font-mono {
+  font-size: max(0.8rem, 1em);
+}
+[lang="ar"] .italic {
+  font-style: normal;
+}
+[lang="ar"] h1,
+[lang="ar"] .font-serif {
+  letter-spacing: 0;
+}
 .case-marquee-wrap:hover .case-marquee {
   animation-play-state: paused;
 }
