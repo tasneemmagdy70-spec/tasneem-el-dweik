@@ -564,7 +564,7 @@ function SurfaceChapter({ shown, instant, desktop, done, reduce }: { shown: bool
       </motion.p>
 
       <h1
-        className="w-fit font-serif text-[clamp(2.6rem,6.6vw,6.2rem)] leading-[0.96] tracking-[-0.02em] text-ink [text-shadow:0_2px_18px_rgb(var(--rgb-halo)/0.85)] lg:[text-shadow:none]"
+        className="w-fit font-serif text-[clamp(2.6rem,min(4.8vw,8.5svh),4.75rem)] leading-[0.98] tracking-[-0.02em] text-ink [text-shadow:0_2px_18px_rgb(var(--rgb-halo)/0.85)] lg:[text-shadow:none]"
         data-xray-label="H1 · one idea"
         data-xray-note="Instrument Serif at display size: editorial, calm, confident. One sentence, one promise."
       >
