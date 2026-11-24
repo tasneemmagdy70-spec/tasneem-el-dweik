@@ -25,7 +25,7 @@ export default function ProjectsGrid() {
   const [hover, setHover] = useState<number | null>(null);
 
   return (
-    <section id="work" className="relative overflow-clip border-t border-white/[0.06] bg-abyss px-6 py-16 sm:px-10 sm:py-20 lg:px-8 lg:py-24">
+    <section id="work" className="relative overflow-clip border-t border-white/[0.06] bg-abyss px-6 pb-16 pt-9 sm:px-10 sm:pb-20 sm:pt-12 lg:px-8 lg:py-24">
       <DeepAmbient
         seed={5}
         lights={[

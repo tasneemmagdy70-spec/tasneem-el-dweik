@@ -145,7 +145,8 @@ export default function Hero() {
   // so this step reads as one more layer down — not as the page suddenly swapping
   const { scrollYProgress: leave } = useScroll({ target: section, offset: ["end end", "end start"] });
   // (tied to the finger's own scroll: it moves exactly as far as you do, no faster)
-  const leaveOp = useTransform(leave, [0, 0.8], [1, 0.2]);
+  // (phones: the work fades only half way, so it hands over to "More work" without a dark gap)
+  const leaveOp = useTransform(leave, [0, 0.8], [1, desktop === false ? 0.55 : 0.2]);
   const leaveScale = useTransform(leave, [0, 0.8], [1, 0.96]);
 
   /* ── mobile choreography (all scroll-linked, so it's reversible) ──

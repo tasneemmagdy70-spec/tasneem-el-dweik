@@ -90,8 +90,9 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
     measure();
     return () => ro.disconnect();
   }, []);
-  const TAB = 28; // the folder tab's height (it rises over the cover)
-  const PH = tablet ? 204 : 164; // the folder front: number, name, line, divider, type
+  const TAB = tablet ? 30 : 26; // the folder's tab (above the folder, holding the number)
+  const PAD = tablet ? 10 : 8; // the folder's edge around the cover
+  const PH = tablet ? 192 : 152; // the folder's lower part: type, name, line, the action
   const GAP_TOP = tablet ? 40 : 30; // title → card
   const GAP_ROW = tablet ? 28 : 22; // card → controls
   const ROW = 48; // the controls row
@@ -99,18 +100,18 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
   if (mobile) {
     const tb = titleBottom || (tablet ? 240 : 190);
     const avail = vh - (tablet ? 32 : 18) - tb - GAP_TOP; // card + gap + controls must fit here
-    const fixed = PH - TAB + GAP_ROW + ROW;
-    CW = Math.max(180, Math.min(tablet ? Math.min(vw * 0.66, 540) : vw * 0.86, (avail - fixed) / COVER));
-    CH = CW * COVER;
+    const fixed = TAB + PAD + PH + GAP_ROW + ROW;
+    CW = Math.max(190, Math.min(tablet ? Math.min(vw * 0.66, 540) : vw * 0.86, (avail - fixed) / COVER + PAD * 2));
+    CH = (CW - PAD * 2) * COVER;
     // whatever height is left over is shared out — a little more above than below — so the
     // stack sits balanced in the space under the title instead of leaving a hole at the bottom
     const spare = Math.max(0, avail - (CH + fixed));
-    const cardTop = tb + GAP_TOP + spare * 0.4;
-    fy = cardTop + CH / 2;
+    const folderTop = tb + GAP_TOP + TAB + spare * 0.4;
+    fy = folderTop + PAD + CH / 2;
     CAPH = PH;
-    rowTop = cardTop + CH - TAB + PH + GAP_ROW + spare * 0.25; // (the last 35% stays under the controls)
+    rowTop = folderTop + PAD + CH + PH + GAP_ROW + spare * 0.25; // (the last 35% stays under the controls)
   }
-  const capTop = mobile ? fy + CH / 2 - TAB + 16 : fy + CH / 2 + 16;
+  const capTop = mobile ? fy + CH / 2 + 8 : fy + CH / 2 + 16;
   // the caption never gets narrower than its button needs, even when a short phone shrinks the card
   const capW = mobile && !tablet ? Math.min(vw - 48, Math.max(CW, 300)) : CW;
   const left = tablet ? 40 : mobile ? 24 : Math.max(32, (vw - 1152) / 2 + 32);
@@ -302,7 +303,7 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
       const sc = lerp(REST * (0.88 + 0.12 * depth), 1, focus) * (0.85 + 0.15 * arrive);
       const el = cards.current[i];
       if (el) {
-        el.style.transform = `translate(${(x - CW / 2).toFixed(1)}px, ${(y - CH / 2).toFixed(1)}px) scale(${sc.toFixed(4)})`;
+        el.style.transform = `translate(${(x - CW / 2).toFixed(1)}px, ${(y - CH / 2 - (mobile ? PAD : 0)).toFixed(1)}px) scale(${sc.toFixed(4)})`;
         el.style.opacity = (arrive * lerp(sOp, 1, focus)).toFixed(3);
         el.style.zIndex = String(focus > 0.5 ? 60 + Math.round(focus * 20) : 15 + Math.round(depth * 20));
         el.style.pointerEvents = enabled && arrive > 0.6 ? "auto" : "none";
@@ -324,8 +325,6 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
         else if (focus < 0.6) delete focusSince.current[i];
         const since = focusSince.current[i];
         const push = since !== undefined && !reduce ? smooth(clamp((now - since) / 6000)) : 0;
-        const sh2 = sheets.current[i];
-        if (sh2) sh2.style.transform = `translateY(${(-5 * open).toFixed(1)}px)`;
         const im = imgs.current[i];
         if (im) im.style.transform = `scale(${(1 + 0.06 * push).toFixed(4)})`;
       }
@@ -432,39 +431,44 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
                 }}
                 aria-label={isActive ? `${proj.name} — open case study on Behance` : `Show ${proj.name}`}
                 tabIndex={enabled && isActive ? 0 : -1}
-                className="relative block transition-transform duration-200 active:scale-[0.985]"
+                className="folder relative block text-left transition-transform duration-200 active:scale-[0.985]"
               >
-                {/* the sheet: the cover, lifting a little out of the folder when it's the one in focus */}
+                {/* the tab, with the project's number, and the soft inside corner where it meets the folder */}
                 <span
-                  ref={(el) => void (sheets.current[i] = el)}
-                  className="relative block overflow-hidden rounded-[1.25rem] shadow-[0_18px_40px_-18px_rgb(var(--rgb-shadow)/0.9)] will-change-transform"
-                  style={{ height: CH }}
+                  aria-hidden
+                  className="folder-fill absolute left-0 flex w-[38%] items-center rounded-t-[14px] px-3.5 font-mono text-[12px] font-semibold text-sand sm:px-5"
+                  style={{ top: -TAB, height: TAB + 1 }}
                 >
-                  <span ref={(el) => void (imgs.current[i] = el)} className="absolute inset-0 block will-change-transform">
-                    <ProjectCover project={proj} index={i} sizes={`${Math.round(CW)}px`} />
-                  </span>
+                  {String(i + 1).padStart(2, "0")}
+                  <span className="ml-2 font-normal text-ink-soft">/ {String(N).padStart(2, "0")}</span>
                 </span>
-                {/* the folder's front — a raised tab on the left (the number), the body under it */}
-                <span
-                  ref={(el) => void (fronts.current[i] = el)}
-                  className="folder-front absolute inset-x-0 block text-left"
-                  style={{ top: CH - TAB, height: PH, opacity: 0 }}
-                >
-                  <span aria-hidden className="folder-fill absolute left-0 top-0 w-[46%] rounded-t-[1.25rem]" style={{ height: TAB + 2 }} />
-                  <span aria-hidden className="folder-notch absolute left-[46%] size-4" style={{ top: TAB - 16 }} />
-                  <span aria-hidden className="folder-fill absolute inset-x-0 bottom-0 rounded-b-[1.25rem] rounded-tr-[1.25rem]" style={{ top: TAB }} />
-                  <span className="relative flex h-full flex-col px-4 pb-3.5 pt-2 sm:px-6 sm:pb-5 sm:pt-3">
-                    <span className="flex items-start justify-between">
-                      <span className="font-serif text-[2.1rem] leading-none text-sand sm:text-[2.8rem]">{String(i + 1).padStart(2, "0")}</span>
-                      <span className="mt-[calc(var(--tab)+0.2rem)] grid size-10 place-items-center rounded-full border border-white/25 text-ink sm:size-12" style={{ ["--tab" as string]: `${TAB - 8}px` }}>
-                        <ArrowUpRight className="size-4" />
-                      </span>
+                <span aria-hidden className="folder-notch absolute left-[38%] size-4" style={{ top: -16 }} />
+                {/* the folder: the cover sits inside it, the words and the action under it */}
+                <span className="folder-fill relative block rounded-[20px] rounded-tl-none" style={{ padding: `${PAD}px ${PAD}px 0` }}>
+                  <span
+                    ref={(el) => void (sheets.current[i] = el)}
+                    className="relative block overflow-hidden rounded-[14px]"
+                    style={{ height: CH }}
+                  >
+                    <span ref={(el) => void (imgs.current[i] = el)} className="absolute inset-0 block will-change-transform">
+                      <ProjectCover project={proj} index={i} sizes={`${Math.round(CW)}px`} />
                     </span>
-                    <span className="-mt-1 block truncate font-serif text-[1.55rem] leading-none text-ink sm:text-[2.1rem]">{proj.name}</span>
-                    <span className="mt-1.5 block truncate text-[0.9rem] text-ink-soft sm:text-[1.05rem]">{proj.what}</span>
-                    <span className="mt-auto block border-t border-white/15 pt-2.5 sm:pt-3.5">
-                      <span className="block truncate font-mono text-[10px] uppercase text-ink-soft">
-                        {proj.meta}
+                  </span>
+                  <span
+                    ref={(el) => void (fronts.current[i] = el)}
+                    className="flex flex-col px-2 pb-3 pt-3 sm:px-3 sm:pb-4 sm:pt-4"
+                    style={{ height: PH, opacity: 0 }}
+                  >
+                    <span className="block truncate font-mono text-[10px] uppercase text-ink-soft">{proj.meta}</span>
+                    <span className="mt-1 block truncate font-serif text-[1.5rem] leading-none text-ink sm:text-[2rem]">{proj.name}</span>
+                    <span className="mt-1 block truncate text-[0.9rem] text-ink-soft sm:text-[1.05rem]">{proj.what}</span>
+                    {/* the one thing to do here: a real, primary button — nothing like the quiet arrows below */}
+                    <span className="mt-auto flex h-11 items-center justify-between rounded-full bg-cta pl-5 pr-1.5 text-[0.92rem] font-semibold text-on-cta shadow-[0_10px_24px_-10px_rgb(var(--rgb-bright)/0.9),inset_0_1px_0_rgba(255,255,255,0.16)] sm:h-12 sm:text-[1rem]">
+                      <span>
+                        Open case study <span className="font-normal opacity-80">on Behance</span>
+                      </span>
+                      <span className="grid size-8 place-items-center rounded-full bg-on-cta text-blue sm:size-9">
+                        <ArrowUpRight className="size-4" />
                       </span>
                     </span>
                   </span>

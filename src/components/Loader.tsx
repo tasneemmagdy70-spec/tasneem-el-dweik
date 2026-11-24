@@ -132,7 +132,7 @@ export default function Loader({
           key="loader"
           role="status"
           aria-live="polite"
-          aria-label={`Loading ${pct}%`}
+          aria-label={`Loading ${instant ? 99 : pct}%`}
           className="fixed inset-0 z-[80] grid place-items-center overflow-hidden bg-paper"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: instant ? 0.15 : 0.7, delay: instant ? 0 : 0.25, ease: [0.4, 0, 0.2, 1] } }}
@@ -209,7 +209,7 @@ export default function Loader({
             {/* counter, sitting in the nucleus */}
             <div className="pointer-events-none absolute inset-0 grid place-items-center">
               <div className="flex items-start font-serif leading-none text-ink [text-shadow:0_0_24px_rgb(var(--rgb-bright)/0.35)]">
-                <span className="text-[clamp(3.6rem,10svh,5.5rem)] tabular-nums tracking-[-0.03em]">{String(pct).padStart(2, "0")}</span>
+                <span className="text-[clamp(3.6rem,10svh,5.5rem)] tabular-nums tracking-[-0.03em]">{String(instant ? 99 : pct).padStart(2, "0")}</span>
                 <span className="mt-2 font-mono text-[11px] text-blue-glow">%</span>
               </div>
             </div>
