@@ -9,3 +9,11 @@ export const BTN_PRIMARY =
 /** the white disc that carries the button's arrow */
 export const BTN_PRIMARY_ICON =
   "relative grid size-7 shrink-0 place-items-center rounded-full bg-on-cta text-blue transition-transform duration-500 ease-out-expo sm:size-9 lg:size-8";
+
+/** The same primary button at a fixed medium size (48px) — for inside a card, where the hero-sized
+ *  pill would outweigh the content it belongs to. Same shape, colour and arrow disc. */
+export const BTN_PRIMARY_MD =
+  "group relative inline-flex w-fit shrink-0 items-center gap-2.5 overflow-hidden whitespace-nowrap rounded-full bg-cta py-2 pl-5 pr-2 text-[0.95rem] font-medium text-on-cta shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition-colors duration-300 hover:bg-cta-hover";
+
+export const BTN_PRIMARY_MD_ICON =
+  "relative grid size-8 shrink-0 place-items-center rounded-full bg-on-cta text-blue transition-transform duration-500 ease-out-expo group-hover:rotate-45";

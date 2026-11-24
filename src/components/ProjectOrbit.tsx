@@ -6,7 +6,7 @@ import { animate, motion, useAnimationFrame, useMotionValue, useMotionValueEvent
 import { FEATURED as PROJECTS } from "@/lib/projects";
 import ProjectCover from "./ProjectCover";
 import { ArrowUpRight } from "./icons";
-import { BTN_PRIMARY, BTN_PRIMARY_ICON } from "@/lib/ui";
+import { BTN_PRIMARY, BTN_PRIMARY_ICON, BTN_PRIMARY_MD, BTN_PRIMARY_MD_ICON } from "@/lib/ui";
 
 /**
  * THE CORE — the work, in orbit.
@@ -75,7 +75,7 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
   const { top, bottom, tablet } = stage;
   let fx = stage.fx;
   let { CW, CH, CAPH, fy } = stage;
-  const REST = tablet ? 0.28 : mobile ? 0.34 : 0.36; // an electron's size relative to the stage card
+  const REST = tablet ? 0.28 : mobile ? 0.34 : 0.2; // an electron's size relative to the stage card
   const left = tablet ? 40 : mobile ? 24 : Math.max(32, (vw - 1152) / 2 + 32);
 
   // Phones & tablets: one measured stack — title · card (cover + folder front) · controls — with
@@ -83,13 +83,11 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
   // and the card as large as what's left allows (never so large that anything touches).
   const titleBox = useRef<HTMLDivElement>(null);
   const [titleBottom, setTitleBottom] = useState(0);
-  const [titleRight, setTitleRight] = useState(0);
   useLayoutEffect(() => {
     const el = titleBox.current;
     if (!el) return;
     const measure = () => {
       setTitleBottom(el.offsetTop + el.offsetHeight);
-      setTitleRight(el.offsetLeft + el.offsetWidth);
     };
     const ro = new ResizeObserver(measure);
     ro.observe(el);
@@ -107,6 +105,8 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
   const GAP_ROW = tablet ? 28 : mobile ? 22 : 30; // card → controls
   const ROW = 48; // the controls row
   let rowTop = 0;
+  const TW = vw >= 1700 ? 420 : 360; // desktop: the words' column beside the cover
+  let IW = CW; // desktop: the cover's width (phones: the folder's inner width)
   if (mobile) {
     const tb = titleBottom || (tablet ? 240 : 190);
     const avail = vh - (tablet ? 32 : 18) - tb - GAP_TOP; // card + gap + controls must fit here
@@ -121,31 +121,34 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
     CAPH = PH;
     rowTop = folderTop + PAD + CH + PH + GAP_ROW + spare * 0.25; // (the last 35% stays under the controls)
   } else {
-    // Desktop: the same folder + controls. It stands beside the title when there's room (so it can
-    // rise to just under the header and be big), and under the title, centred, when there isn't.
-    const fixed = TAB + PAD + PH + GAP_ROW + ROW;
-    const sizeUnder = (tb: number) => Math.max(240, Math.min(440, vw * 0.3, (vh - 44 - tb - GAP_TOP - fixed) / COVER + PAD * 2));
-    const header = 92;
-    const tRight = titleRight || left + 470;
-    let tb = header;
-    let cw = sizeUnder(tb);
-    let cx = Math.max(vw / 2, tRight + 48 + cw / 2);
-    if (cx + cw / 2 > vw - 240) {
-      // no room beside it (the depth rail lives on the right): sit under the title instead
-      tb = titleBottom || vh * 0.13 + 124;
-      cw = sizeUnder(tb);
-      cx = vw / 2;
+    // Desktop: a wide folder — the cover on the left, the words and the action on the right —
+    // starting right under the title, on the title's left edge. Its height is worked out from
+    // the screen's: title · breath · folder · breath · controls · breath always fit, so nothing
+    // is ever cut at the bottom (zoomed displays included).
+    const tb = titleBottom || vh * 0.13 + 124;
+    const BOTTOM = 28;
+    const maxW = Math.min(1120, vw - left - 260); // the depth rail keeps the right-hand side
+    const availH = vh - tb - GAP_TOP - TAB - GAP_ROW - ROW - BOTTOM;
+    let ih = Math.max(180, Math.min(500, availH - PAD * 2));
+    let iw = ih / COVER;
+    if (iw + TW + PAD * 3 > maxW) {
+      iw = Math.max(300, maxW - TW - PAD * 3);
+      ih = iw * COVER;
     }
-    CW = cw;
-    CH = (CW - PAD * 2) * COVER;
-    fx = cx;
-    const spare = Math.max(0, vh - 44 - tb - GAP_TOP - (CH + fixed));
-    const folderTop = tb + GAP_TOP + TAB + spare * 0.4;
+    IW = iw;
+    CH = ih;
+    CW = iw + TW + PAD * 3;
+    CAPH = CH;
+    fx = left + CW / 2;
+    const spare = Math.max(0, availH - (ih + PAD * 2));
+    const folderTop = tb + GAP_TOP + TAB + spare * 0.35;
     fy = folderTop + PAD + CH / 2;
-    CAPH = PH;
-    rowTop = folderTop + PAD + CH + PH + GAP_ROW + spare * 0.25;
+    rowTop = folderTop + CH + PAD * 2 + GAP_ROW + spare * 0.3;
   }
-  const capTop = fy + CH / 2 + 8; // the folder's lower part
+  // the part of the folder the orbit must never cross: phones — the words under the cover;
+  // desktop — the whole folder (the words sit beside the cover)
+  const capTop = mobile ? fy + CH / 2 + 8 : fy - CH / 2 - PAD;
+  if (!mobile) CAPH = CH + PAD * 2 + 16;
 
   // the shells ride around the whole stage block (card + caption), tilted like the atom's own
   const sy = (fy - CH / 2 + capTop + CAPH - 16) / 2;
@@ -157,9 +160,9 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
         { rx: vw * (tablet ? 0.6 : 0.58), ry: span + 58, tilt: -4, dir: 1 },
       ]
     : [
-        { rx: CW * 0.95, ry: span + 30, tilt: -12, dir: 1 },
-        { rx: CW * 1.3, ry: span + 10, tilt: 14, dir: -1 },
-        { rx: CW * 1.62, ry: span - 10, tilt: -8, dir: 1 },
+        { rx: CW * 0.6, ry: span + 70, tilt: -10, dir: 1 },
+        { rx: CW * 0.74, ry: span + 44, tilt: 8, dir: -1 },
+        { rx: CW * 0.86, ry: span + 24, tilt: -5, dir: 1 },
       ];
   // the frame: a rounded rect hugging the cover (r = 12px, inset 1px)
   const FR = { w: CW - 3, h: CH - 3, r: 10.5 };
@@ -513,24 +516,28 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
                 </span>
                 <span aria-hidden className="folder-notch absolute left-[38%] size-4" style={{ top: -16 }} />
                 {/* the folder: the cover sits inside it, the words and the action under it */}
-                <span className="folder-fill relative block rounded-[20px] rounded-tl-none" style={{ padding: `${PAD}px ${PAD}px 0` }}>
+                <span
+                  className={`folder-fill relative rounded-[20px] rounded-tl-none ${mobile ? "block" : "flex items-stretch"}`}
+                  style={{ padding: mobile ? `${PAD}px ${PAD}px 0` : PAD, gap: mobile ? undefined : PAD }}
+                >
                   <span
                     ref={(el) => void (sheets.current[i] = el)}
-                    className="relative block overflow-hidden rounded-[14px]"
-                    style={{ height: CH }}
+                    className="relative block shrink-0 overflow-hidden rounded-[14px]"
+                    style={{ height: CH, width: mobile ? undefined : IW }}
                   >
                     <span ref={(el) => void (imgs.current[i] = el)} className="absolute inset-0 block will-change-transform">
                       <ProjectCover project={proj} index={i} sizes={`${Math.round(CW)}px`} />
                     </span>
                   </span>
+                  {mobile ? (
                   <span
                     ref={(el) => void (fronts.current[i] = el)}
-                    className="flex flex-col px-2 pb-3 pt-3 sm:px-3 sm:pb-4 sm:pt-4 lg:px-3 lg:pb-4 lg:pt-4"
+                    className="flex flex-col px-2 pb-3 pt-3 sm:px-3 sm:pb-4 sm:pt-4"
                     style={{ minHeight: PH, opacity: 0 }}
                   >
                     <span className="block truncate font-mono text-[10px] uppercase text-ink-soft">{proj.meta}</span>
-                    <span className="mt-1 block truncate font-serif text-[1.5rem] leading-none text-ink sm:text-[2rem] lg:text-[1.75rem]">{proj.name}</span>
-                    <span className="mt-1 block truncate text-[0.9rem] text-ink-soft sm:text-[1.05rem] lg:text-[0.95rem]">{proj.what}</span>
+                    <span className="mt-1 block truncate font-serif text-[1.5rem] leading-none text-ink sm:text-[2rem]">{proj.name}</span>
+                    <span className="mt-1 block truncate text-[0.9rem] text-ink-soft sm:text-[1.05rem]">{proj.what}</span>
                     {/* the one thing to do here: a real, primary button — nothing like the quiet arrows below */}
                     <span className="mt-auto flex items-center gap-3">
                       <span className={BTN_PRIMARY}>
@@ -542,6 +549,27 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
                       <span className="font-mono text-[10px] uppercase text-ink-soft">on Behance</span>
                     </span>
                   </span>
+                  ) : (
+                  /* desktop: the words beside the cover — type, name, a full line, then the action */
+                  <span
+                    ref={(el) => void (fronts.current[i] = el)}
+                    className="flex min-w-0 flex-col justify-center py-2 pl-3 pr-5"
+                    style={{ width: TW, opacity: 0 }}
+                  >
+                    <span className="block truncate font-mono text-[11px] uppercase text-ink-soft">{proj.meta}</span>
+                    <span className="mt-2.5 block truncate font-serif text-[clamp(2rem,4.6svh,2.6rem)] leading-none text-ink">{proj.name}</span>
+                    <span className="mt-3 line-clamp-2 text-[1rem] leading-snug text-ink-soft">{proj.what}</span>
+                    <span className="mt-6 flex items-center gap-3.5">
+                      <span className={BTN_PRIMARY_MD}>
+                        Open case study
+                        <span className={BTN_PRIMARY_MD_ICON}>
+                          <ArrowUpRight className="size-3.5" />
+                        </span>
+                      </span>
+                      <span className="text-[0.9rem] text-ink-soft">on Behance</span>
+                    </span>
+                  </span>
+                  )}
                 </span>
                 {/* as an electron: its number + name, so the orbit reads as "more projects" */}
                 <span
