@@ -7,6 +7,7 @@ import { BEHANCE_URL } from "@/lib/contact";
 import ProjectCover from "./ProjectCover";
 import DeepAmbient, { DepthTag } from "./DeepAmbient";
 import { ArrowUpRight } from "./icons";
+import { BTN_PRIMARY, BTN_PRIMARY_ICON } from "@/lib/ui";
 
 /**
  * MORE WORK — the orbit holds the strongest work; this is the quieter tier under
@@ -150,9 +151,9 @@ export default function ProjectsGrid() {
               Every project, the full case studies and the explorations in between — all on Behance.
             </p>
           </div>
-          <span className="relative inline-flex w-fit items-center gap-3 rounded-full bg-cta hover:bg-cta-hover py-2 pl-5 pr-2 text-[0.88rem] font-medium text-on-cta shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
+          <span className={BTN_PRIMARY}>
             See all work on Behance
-            <span className="grid size-8 place-items-center rounded-full bg-on-cta text-blue transition-transform duration-500 ease-out-expo group-hover:rotate-45">
+            <span className={`${BTN_PRIMARY_ICON} group-hover:rotate-45`}>
               <ArrowUpRight className="size-3.5" />
             </span>
           </span>

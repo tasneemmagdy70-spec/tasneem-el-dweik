@@ -6,6 +6,7 @@ import { animate, AnimatePresence, motion, useAnimationFrame, useMotionValue, us
 import { FEATURED as PROJECTS } from "@/lib/projects";
 import ProjectCover from "./ProjectCover";
 import { ArrowUpRight } from "./icons";
+import { BTN_PRIMARY, BTN_PRIMARY_ICON } from "@/lib/ui";
 
 /**
  * THE CORE — the work, in orbit.
@@ -30,7 +31,7 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 export function coreStage(vw: number, vh: number, mobile: boolean) {
   // tablet (portrait, 640–1023px): the phone's single-column stage, scaled up to the screen
   const tablet = mobile && vw >= 640;
-  const CAPH = tablet ? 186 : mobile ? 152 : 136; // gap + caption block under the card (phone: measured 129 + gap + air)
+  const CAPH = tablet ? 186 : mobile ? 152 : 156; // gap + caption block under the card (phone: measured 129 + gap + air)
   const top = tablet ? 250 : mobile ? 205 : 96; // below the title (mobile) / the header (desktop)
   const bottom = vh - (tablet ? 104 : mobile ? 84 : 76); // above the counter + "More work"
   // on short phones the card gives way first, so the caption never runs into the bottom bar
@@ -463,13 +464,14 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
                     <span className="mt-1 block truncate font-serif text-[1.5rem] leading-none text-ink sm:text-[2rem]">{proj.name}</span>
                     <span className="mt-1 block truncate text-[0.9rem] text-ink-soft sm:text-[1.05rem]">{proj.what}</span>
                     {/* the one thing to do here: a real, primary button — nothing like the quiet arrows below */}
-                    <span className="mt-auto flex h-11 items-center justify-between rounded-full bg-cta pl-5 pr-1.5 text-[0.92rem] font-semibold text-on-cta shadow-[0_10px_24px_-10px_rgb(var(--rgb-bright)/0.9),inset_0_1px_0_rgba(255,255,255,0.16)] sm:h-12 sm:text-[1rem]">
-                      <span>
-                        Open case study <span className="font-normal opacity-80">on Behance</span>
+                    <span className="mt-auto flex items-center gap-3">
+                      <span className={BTN_PRIMARY}>
+                        Open case study
+                        <span className={BTN_PRIMARY_ICON}>
+                          <ArrowUpRight className="size-3.5" />
+                        </span>
                       </span>
-                      <span className="grid size-8 place-items-center rounded-full bg-on-cta text-blue sm:size-9">
-                        <ArrowUpRight className="size-4" />
-                      </span>
+                      <span className="font-mono text-[10px] uppercase text-ink-soft">on Behance</span>
                     </span>
                   </span>
                 </span>
@@ -630,12 +632,12 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
                 target="_blank"
                 rel="noopener noreferrer"
                 tabIndex={enabled ? 0 : -1}
-                className={`group relative inline-flex items-center gap-3 overflow-hidden rounded-full bg-cta hover:bg-cta-hover py-1.5 pl-4 pr-1.5 text-[0.85rem] font-medium text-on-cta shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition-colors duration-300 md:py-2 md:pl-5 md:pr-2 md:text-[0.9rem] sm:py-2.5 sm:pl-6 sm:pr-2 sm:text-[1.05rem] lg:py-2 lg:pl-5 lg:text-[0.9rem] ${
+                className={`${BTN_PRIMARY} ${
                   enabled ? "pointer-events-auto" : ""
                 }`}
               >
                 <span className="relative">Open case study</span>
-                <span className="relative grid size-7 place-items-center rounded-full bg-on-cta text-blue md:size-8 sm:size-9 lg:size-8">
+                <span className={BTN_PRIMARY_ICON}>
                   <span className="relative block size-3.5 overflow-hidden">
                     <ArrowUpRight className="absolute inset-0 size-full transition-transform duration-500 ease-out-expo group-hover:-translate-y-full group-hover:translate-x-full" />
                     <ArrowUpRight className="absolute inset-0 size-full -translate-x-full translate-y-full transition-transform duration-500 ease-out-expo group-hover:translate-x-0 group-hover:translate-y-0" />

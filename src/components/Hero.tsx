@@ -14,6 +14,7 @@ import { LAYERS, RAW_STOPS, goToLayer } from "@/lib/depth";
 import { useLayerPager } from "./useLayerPager";
 import ProjectOrbit, { coreStage } from "./ProjectOrbit";
 import { CV_URL } from "@/lib/contact";
+import { BTN_PRIMARY, BTN_PRIMARY_ICON } from "@/lib/ui";
 
 /* ───────────────────────────────────────────────────────────────
    BENEATH THE SURFACE
@@ -630,10 +631,10 @@ function SurfaceChapter({ shown, instant, desktop, done, reduce }: { shown: bool
               e.preventDefault();
               goToLayer(3);
             }}
-            className="group relative inline-flex items-center gap-2.5 overflow-hidden rounded-full bg-cta hover:bg-cta-hover py-1.5 pl-4 pr-1.5 text-[0.8rem] lg:gap-3 font-medium text-on-cta shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition-colors duration-300 lg:py-3.5 lg:pl-6 lg:pr-3.5 lg:text-[0.95rem]"
+            className={BTN_PRIMARY}
           >
             <span className="relative">View My Work</span>
-            <span className="relative grid size-7 place-items-center lg:size-8 rounded-full bg-on-cta text-blue transition-transform duration-500 ease-out-expo group-hover:scale-105">
+            <span className={`${BTN_PRIMARY_ICON} group-hover:scale-105`}>
               <span className="relative block size-4 overflow-hidden">
                 <Arrow className="absolute inset-0 transition-transform duration-500 ease-out-expo group-hover:translate-x-full" />
                 <Arrow className="absolute inset-0 -translate-x-full transition-transform duration-500 ease-out-expo group-hover:translate-x-0" />
@@ -934,10 +935,10 @@ function SurfaceHeadline({
             e.preventDefault();
             goToLayer(3);
           }}
-          className="group relative inline-flex items-center gap-2.5 overflow-hidden rounded-full bg-cta hover:bg-cta-hover py-1.5 pl-4 pr-1.5 text-[0.8rem] font-medium text-on-cta shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] sm:py-2 sm:pl-5 sm:pr-2 sm:text-[1rem]"
+          className={BTN_PRIMARY}
         >
           <span className="relative">View My Work</span>
-          <span className="relative grid size-7 place-items-center rounded-full bg-on-cta text-blue sm:size-9">
+          <span className={BTN_PRIMARY_ICON}>
             <Arrow className="size-3.5" />
           </span>
         </MagneticButton>

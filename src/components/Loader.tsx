@@ -209,7 +209,18 @@ export default function Loader({
             {/* counter, sitting in the nucleus */}
             <div className="pointer-events-none absolute inset-0 grid place-items-center">
               <div className="flex items-start font-serif leading-none text-ink [text-shadow:0_0_24px_rgb(var(--rgb-bright)/0.35)]">
-                <span className="text-[clamp(3.6rem,10svh,5.5rem)] tabular-nums tracking-[-0.03em]">{String(instant ? 99 : pct).padStart(2, "0")}</span>
+                <span className="text-[clamp(3.6rem,10svh,5.5rem)] tabular-nums tracking-[-0.03em]">{instant ? (
+                    "99"
+                  ) : running ? (
+                    String(pct).padStart(2, "0")
+                  ) : (
+                    // before it starts — including the very first paint, before the page knows it's a
+                    // phone — phones (which only ever get the short intro) already read 99
+                    <>
+                      <span className="lg:hidden">99</span>
+                      <span className="hidden lg:inline">{String(pct).padStart(2, "0")}</span>
+                    </>
+                  )}</span>
                 <span className="mt-2 font-mono text-[11px] text-blue-glow">%</span>
               </div>
             </div>
