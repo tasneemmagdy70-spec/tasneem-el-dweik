@@ -225,6 +225,13 @@ export default function Hero() {
   // every "next" button land in exactly the same place
   const goTo = goToLayer;
 
+  // coming back from a case study ("← All work"): land on the work, not on the first screen
+  useEffect(() => {
+    if (!done || window.location.hash !== "#best-work") return;
+    history.replaceState(null, "", window.location.pathname);
+    goTo(3);
+  }, [done, goTo]);
+
   // The Core: which project is on stage. Sideways swipes, arrows and ←/→ turn it.
   const [proj, setProj] = useState(0);
   const chapterRef = useRef(chapter);

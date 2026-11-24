@@ -482,9 +482,8 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
             style={{ width: CW }}
           >
               <a
-                href={proj.href}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={proj.caseStudy ?? proj.href}
+                {...(proj.caseStudy ? {} : { target: "_blank", rel: "noopener noreferrer" })}
                 data-sound={isActive ? undefined : "own"}
                 onClick={(e) => {
                   if (!isActive) {
@@ -492,7 +491,7 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
                     onIndex(i);
                   }
                 }}
-                aria-label={isActive ? `${proj.name} — open case study on Behance` : `Show ${proj.name}`}
+                aria-label={isActive ? `${proj.name} — open case study${proj.caseStudy ? "" : " on Behance"}` : `Show ${proj.name}`}
                 tabIndex={enabled && isActive ? 0 : -1}
                 onPointerDown={(e) => mouseDrag(e)}
                 onClickCapture={(e) => {
@@ -546,7 +545,7 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
                           <ArrowUpRight className="size-3.5" />
                         </span>
                       </span>
-                      <span className="font-mono text-[10px] uppercase text-ink-soft">on Behance</span>
+                      {!proj.caseStudy && <span className="font-mono text-[10px] uppercase text-ink-soft">on Behance</span>}
                     </span>
                   </span>
                   ) : (
@@ -566,7 +565,7 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
                           <ArrowUpRight className="size-3.5" />
                         </span>
                       </span>
-                      <span className="text-[0.9rem] text-ink-soft">on Behance</span>
+                      {!proj.caseStudy && <span className="text-[0.9rem] text-ink-soft">on Behance</span>}
                     </span>
                   </span>
                   )}

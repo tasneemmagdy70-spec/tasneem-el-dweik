@@ -12,6 +12,7 @@ export type Project = {
   meta: string; // platform / type
   hue: number; // fallback cover tint (0–360)
   href: string; // the Behance case study
+  caseStudy?: string; // the case study inside the portfolio, when there is one (preferred over Behance)
   image?: string;
 };
 
@@ -24,6 +25,7 @@ export const FEATURED: Project[] = [
     meta: "ITI graduation project",
     hue: 258,
     href: `${BE}/254132483/NOVU-AI-Powered-Tech-Career-Roadmap-Platform`,
+    caseStudy: "/work/novu",
     image: "/images/projects/novu.webp",
   },
   {
