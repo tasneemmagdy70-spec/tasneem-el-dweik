@@ -25,7 +25,7 @@ export default function ArtifactZoom({ figure, label }: { figure: Figure; label:
           sizes="(min-width: 1024px) 220px, 80vw"
           className="object-cover object-top transition-transform duration-700 ease-out-expo group-hover/zoom:scale-[1.05]"
         />
-        <span className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1.5 rounded-full bg-[#0b0d16]/80 px-2.5 py-1 font-mono text-[10px] uppercase text-white backdrop-blur-sm transition-colors group-hover/zoom:bg-blue-glow">
+        <span className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1.5 rounded-full bg-[#895CDD] px-2.5 py-1 font-mono text-[10px] uppercase text-[#fff] shadow-[0_4px_12px_-4px_rgba(137,92,221,0.7)] transition-[background-color,transform] group-hover/zoom:scale-105 group-hover/zoom:bg-[#7446c9]">
           <svg viewBox="0 0 16 16" className="size-3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
             <circle cx="7" cy="7" r="4.5" />
             <path d="m10.5 10.5 3 3M7 5v4M5 7h4" />

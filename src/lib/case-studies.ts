@@ -13,7 +13,6 @@ export type CaseStudy = {
   tagline: string; // ≤ 12 words
   behance: string;
   chips: string[]; // role · platforms · type
-  readTime: string;
   cover: Figure;
   /** the UX work, phase by phase (design thinking), with the artifact that shows it */
   process: {
@@ -54,7 +53,6 @@ export const CASE_STUDIES: CaseStudy[] = [
     tagline: "A guided path into tech: one roadmap, an AI mentor, real practice.",
     behance: "https://www.behance.net/gallery/254132483/NOVU-AI-Powered-Tech-Career-Roadmap-Platform",
     chips: ["UX research", "UI design", "Mobile app", "Web", "Admin dashboard", "AI mentor", "Gamification", "Design system", "Usability testing", "ITI graduation project"],
-    readTime: "2 min read",
     cover: { src: `${IMG}/cover.webp`, w: 1400, h: 788, alt: "NOVU — Learn Tech. Build Your Future. The NOVU app on a phone." },
     problem: {
       before: "Learners aren't short of content — they're ",
@@ -179,11 +177,6 @@ export const CASE_STUDIES: CaseStudy[] = [
         { src: `${IMG}/screens/d-overview.webp`, w: 1440, h: 1024, alt: "Dashboard: users, learners and popular paths." },
         { src: `${IMG}/screens/d-paths.webp`, w: 1440, h: 1024, alt: "Dashboard: managing career paths." },
         { src: `${IMG}/screens/d-63.webp`, w: 1440, h: 1024, alt: "Dashboard: the roadmap builder." },
-        { src: `${IMG}/screens/d-72.webp`, w: 1440, h: 1024, alt: "Dashboard: learners and their progress." },
-        { src: `${IMG}/screens/d-73.webp`, w: 1440, h: 1024, alt: "Dashboard: subscriptions and plans." },
-        { src: `${IMG}/screens/d-71.webp`, w: 1440, h: 1024, alt: "Dashboard: rewards and progression." },
-        { src: `${IMG}/screens/d-67.webp`, w: 1440, h: 1024, alt: "Dashboard: AI mentor control." },
-        { src: `${IMG}/screens/d-70.webp`, w: 1440, h: 1024, alt: "Dashboard: practice hub tasks." },
       ],
       totals: { mobile: "50+", web: "30+", dashboard: "8" },
     },

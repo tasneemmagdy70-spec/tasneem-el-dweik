@@ -59,28 +59,28 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
 
   return (
     <div className="relative min-h-screen bg-paper text-ink">
-      {/* ── top bar: just home and the theme — and a hairline of reading progress ── */}
+      {/* ── top bar, stuck to the top while you scroll: back to the projects (left), home, the theme — and a hairline of reading progress ── */}
       <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-paper/85 backdrop-blur-md">
         <div className={`mx-auto flex h-16 max-w-6xl items-center justify-between ${GUTTER}`}>
-          <Link href="/" className="font-script text-[1.7rem] leading-none text-ink transition-colors hover:text-blue-glow" aria-label="El-Dweik — home">
-            El-Dweik
-          </Link>
+          <div className="flex items-center gap-3 sm:gap-4">
+            <Link
+              href="/#best-work"
+              aria-label="Back to projects"
+              title="Back to projects"
+              className="-ml-1 grid size-10 place-items-center rounded-full border border-white/15 text-ink transition-[border-color,transform,color] duration-300 hover:-translate-x-0.5 hover:border-blue-glow/60 hover:text-blue-glow active:scale-95"
+            >
+              <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M13 8H3M7.5 3.5 3 8l4.5 4.5" />
+              </svg>
+            </Link>
+            <Link href="/" className="font-script text-[1.7rem] leading-none text-ink transition-colors hover:text-blue-glow" aria-label="El-Dweik — home">
+              El-Dweik
+            </Link>
+          </div>
           <ThemeToggle />
         </div>
         <CaseProgress />
       </header>
-
-      {/* ── back to the projects: a floating arrow, there wherever you are on the page ── */}
-      <Link
-        href="/#best-work"
-        aria-label="Back to projects"
-        title="Back to projects"
-        className="fixed bottom-5 left-5 z-40 grid size-12 place-items-center rounded-full border border-white/15 bg-panel/80 text-ink shadow-[0_12px_30px_-12px_rgba(0,0,0,0.7)] backdrop-blur-md transition-[border-color,transform,color] duration-300 hover:-translate-x-0.5 hover:border-blue-glow/60 hover:text-blue-glow active:scale-95 sm:bottom-8 sm:left-8"
-      >
-        <svg viewBox="0 0 16 16" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M13 8H3M7.5 3.5 3 8l4.5 4.5" />
-        </svg>
-      </Link>
 
       <main>
         {/* ── the opening: what it is (left) and the problem it solves (right) ── */}
@@ -88,12 +88,8 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
           <div className="mx-auto max-w-6xl">
             <div className="grid gap-10 md:grid-cols-2 md:items-end md:gap-10 lg:gap-16">
               <Reveal className="min-w-0">
-                <p className="flex items-center gap-3 font-mono text-[11px] uppercase text-blue-glow">
-                  <span>
-                    {c.n} / {String(FEATURED.length).padStart(2, "0")}
-                  </span>
-                  <span className="h-px w-8 bg-blue-glow/50" />
-                  <span className="text-ink-soft">{c.readTime}</span>
+                <p className="font-mono text-[11px] uppercase text-blue-glow">
+                  {c.n} / {String(FEATURED.length).padStart(2, "0")}
                 </p>
                 <h1 className="mt-4 font-serif text-[clamp(3.5rem,9vw,6rem)] leading-[0.92] tracking-[-0.02em]">{c.name}</h1>
                 <p className="mt-5 max-w-md text-[1.1rem] leading-snug text-ink-soft sm:text-[1.2rem]">{c.tagline}</p>
@@ -444,8 +440,13 @@ function Collection({ shots, mirror = false }: { shots: Figure[]; mirror?: boole
   const more = rest.slice(4); // the rest, one row underneath
   return (
     <div className="space-y-3 sm:space-y-4">
-      <div className="grid grid-flow-dense grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Browser figure={lead} className={`col-span-2 lg:row-span-2 ${mirror ? "lg:col-start-3" : ""}`} large />
+      {/* a short set (lead + 2) sits in 3 columns; a full one (lead + 4) in 4 */}
+      <div className={`grid grid-flow-dense grid-cols-2 gap-3 sm:gap-4 ${beside.length <= 2 ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
+        <Browser
+          figure={lead}
+          className={`col-span-2 lg:row-span-2 ${mirror ? (beside.length <= 2 ? "lg:col-start-2" : "lg:col-start-3") : ""}`}
+          large
+        />
         {beside.map((s) => (
           <Browser key={s.src} figure={s} />
         ))}
