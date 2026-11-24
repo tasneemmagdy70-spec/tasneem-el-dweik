@@ -34,6 +34,11 @@ export default function Navbar() {
   // the floating "Let's talk" waits for the first scroll: the opening screen ends in
   // "Scroll to read", and nothing should sit on top of that invitation
   const [moved, setMoved] = useState(false);
+  // phones & tablets: the WhatsApp button steps aside while you read down the page (it comes back
+  // the moment you scroll up), and stays away from the work — there, the projects come first
+  const [readingDown, setReadingDown] = useState(false);
+  const [inWork, setInWork] = useState(false);
+  const lastY = useRef(0);
   useEffect(() => {
     const el = document.getElementById("contact");
     if (!el) return;
@@ -54,6 +59,13 @@ export default function Navbar() {
     const heroEnd = hero ? hero.offsetTop + hero.offsetHeight - window.innerHeight : 24;
     setScrolled(y > heroEnd + 24);
     setMoved(y > 40);
+    const dy = y - lastY.current;
+    if (Math.abs(dy) > 6) {
+      setReadingDown(dy > 0);
+      lastY.current = y;
+    }
+    const layer = currentLayer();
+    setInWork(layer === 3 || layer === 4);
   });
 
   // Menu open: freeze the page behind it, keep Tab inside, Esc closes.
@@ -324,12 +336,12 @@ export default function Navbar() {
       </AnimatePresence>
 
       {/* phone & tablet: "Let's talk" floats in the thumb's corner (bottom-left, away from the
-          browser's own controls), so the top bar stays calm. It's the one primary-coloured
-          thing on screen, so the eye finds it; a slow ring of text says what it is, and a soft
-          ripple now and then reminds without nagging. It steps aside while the menu is open
-          and once you're already at Contact. */}
+          browser's own controls), so the top bar stays calm. Small (52px — a comfortable tap,
+          no more), found by its colour rather than by moving. It steps aside while you scroll
+          down (back as soon as you scroll up), through the work (the projects come first),
+          while the menu is open, and once you're already at Contact. */}
       <AnimatePresence>
-        {!open && !atContact && moved && (
+        {!open && !atContact && moved && !readingDown && !inWork && (
           <motion.a
             key="talk-float"
             href={WHATSAPP_URL}
@@ -341,24 +353,10 @@ export default function Navbar() {
             exit={{ opacity: 0, scale: 0.6 }}
             transition={{ duration: 0.55, ease }}
             whileTap={{ scale: 0.92 }}
-            className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-4 z-40 grid size-[4.75rem] place-items-center rounded-full bg-cta text-on-cta shadow-[0_14px_34px_-10px_rgb(var(--rgb-bright)/0.75),inset_0_1px_0_rgba(255,255,255,0.18)] sm:left-6 sm:size-[5.5rem] lg:hidden"
+            className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-4 z-40 grid size-[3.25rem] place-items-center rounded-full bg-cta text-on-cta shadow-[0_10px_26px_-10px_rgb(var(--rgb-bright)/0.75),inset_0_1px_0_rgba(255,255,255,0.18)] sm:left-6 sm:size-14 lg:hidden"
           >
-            {/* (still: no ripple, no turning ring — it's found by its colour, not by moving) */}
-            {/* the ring of words, turning slowly */}
-            <motion.svg
-              aria-hidden
-              viewBox="0 0 100 100"
-              className="pointer-events-none absolute inset-0 size-full"
-            >
-              <defs>
-                <path id="talk-ring" d="M50,50 m-37,0 a37,37 0 1,1 74,0 a37,37 0 1,1 -74,0" />
-              </defs>
-              <text className="fill-current font-mono uppercase" fontSize="9.6" textLength="228" lengthAdjust="spacing" opacity="0.9">
-                <textPath href="#talk-ring">Let&apos;s talk · on WhatsApp · </textPath>
-              </text>
-            </motion.svg>
             {/* the centre: the WhatsApp mark — it says where the tap takes you before you tap */}
-            <WhatsAppIcon className="relative size-[1.3rem] sm:size-[1.45rem]" />
+            <WhatsAppIcon className="relative size-[1.35rem]" />
           </motion.a>
         )}
       </AnimatePresence>    </>

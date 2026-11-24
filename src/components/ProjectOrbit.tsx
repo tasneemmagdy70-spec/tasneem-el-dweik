@@ -67,6 +67,7 @@ type Props = {
 };
 
 const HINT_KEY = "ed-orbit-hint";
+const GAP = 14; // phones & tablets: space between neighbouring cards in the carousel
 
 export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobile, vw, vh, onAll }: Props) {
   const reduce = useReducedMotion();
@@ -142,7 +143,8 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
       animate(at, indexRef.current, { duration: reduce ? 0 : 0.55, ease: [0.33, 1, 0.68, 1] });
       return;
     }
-    let off = -dx / (vw * 0.6);
+    // (phones: the card moves exactly with the finger — one card width per card)
+    let off = -dx / (mobile ? CW + GAP : vw * 0.6);
     const base = at.get();
     const lo = -base;
     const hi = N - 1 - base;
@@ -203,6 +205,29 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
 
     const a = at.get() + held.current;
     const nudge = lean.get();
+
+    // Phones & tablets: a plain carousel — the project in focus in the middle, its neighbours
+    // peeking in at the edges (the clearest "there's more, swipe"), nothing else orbiting.
+    if (mobile) {
+      PROJECTS.forEach((_, i) => {
+        const d = i - a;
+        const ad = Math.abs(d);
+        const arrive = smooth(clamp(vis * 1.6));
+        const x = fx + d * (CW + GAP) + nudge * Math.max(0, 1 - ad);
+        const sc = 1 - 0.06 * Math.min(1, ad);
+        const op = ad < 1 ? 1 - 0.5 * ad : Math.max(0, 0.5 - (ad - 1) * 0.5);
+        const el = cards.current[i];
+        if (el) {
+          el.style.transform = `translate(${(x - CW / 2).toFixed(1)}px, ${(fy - CH / 2).toFixed(1)}px) scale(${sc.toFixed(4)})`;
+          el.style.opacity = (arrive * op).toFixed(3);
+          el.style.zIndex = String(60 - Math.round(ad * 10));
+          el.style.pointerEvents = enabled && ad < 1.5 ? "auto" : "none";
+        }
+      });
+      const front = Math.max(0, Math.min(N - 1, Math.round(a)));
+      setActive((cur) => (cur === front ? cur : front));
+      return;
+    }
 
     let front = 0;
     let best = -1;
@@ -329,6 +354,40 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
             className="absolute left-0 top-0 origin-center opacity-0 will-change-transform"
             style={{ width: CW }}
           >
+            {mobile ? (
+              <a
+                href={proj.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-sound={isActive ? undefined : "own"}
+                onClick={(e) => {
+                  if (!isActive) {
+                    e.preventDefault();
+                    onIndex(i);
+                  }
+                }}
+                aria-label={isActive ? `${proj.name} — open case study on Behance` : `Show ${proj.name}`}
+                tabIndex={enabled && isActive ? 0 : -1}
+                className="block overflow-hidden rounded-2xl border border-white/12 bg-panel shadow-[0_24px_50px_-22px_rgb(var(--rgb-shadow)/0.9)] transition-transform duration-200 active:scale-[0.985]"
+              >
+                <span className="relative block overflow-hidden" style={{ height: CH }}>
+                  <ProjectCover project={proj} index={i} sizes={`${Math.round(CW)}px`} />
+                </span>
+                <span className="block border-t border-white/10 px-4 pb-3.5 pt-3 sm:px-5 sm:pb-5 sm:pt-4">
+                  <span className="block truncate font-mono text-[10px] uppercase text-ink-soft">
+                    <span className="text-sand">{String(i + 1).padStart(2, "0")}</span> · {proj.meta}
+                  </span>
+                  <span className="mt-1 block truncate font-serif text-[1.6rem] leading-none text-ink sm:mt-1.5 sm:text-[2.2rem]">{proj.name}</span>
+                  <span className="mt-1 block truncate text-[0.88rem] text-ink-soft sm:mt-1.5 sm:text-[1.05rem]">{proj.what}</span>
+                  <span className="mt-2.5 inline-flex items-center gap-2.5 rounded-full bg-cta py-1.5 pl-4 pr-1.5 text-[0.85rem] font-medium text-on-cta sm:mt-4 sm:py-2 sm:pl-5 sm:pr-2 sm:text-[1rem]">
+                    Open case study
+                    <span className="grid size-7 place-items-center rounded-full bg-on-cta text-blue sm:size-8">
+                      <ArrowUpRight className="size-3.5" />
+                    </span>
+                  </span>
+                </span>
+              </a>
+            ) : (
             <a
               href={proj.href}
               target="_blank"
@@ -388,12 +447,13 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
                 </span>
               )}
             </a>
+            )}
           </div>
         );
       })}
 
-      {/* ‹ › beside the card: says, without words, that the work turns sideways */}
-      {(
+      {/* ‹ › beside the card: says, without words, that the work turns sideways (desktop) */}
+      {!mobile && (
         [
           [-1, "Previous project"],
           [1, "Next project"],
@@ -433,9 +493,9 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
         );
       })}
 
-      {/* first visit: how to turn the work */}
+      {/* first visit: how to turn the work (desktop — on a phone the peeking cards say it) */}
       <AnimatePresence>
-        {hint && (
+        {hint && !mobile && (
           <motion.div
             key="hint"
             initial={{ opacity: 0, y: 6 }}
@@ -450,7 +510,8 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
         )}
       </AnimatePresence>
 
-      {/* the caption: always in the same place, under the stage */}
+      {/* the caption: always in the same place, under the stage (desktop — phones carry it in the card) */}
+      {!mobile && (
       <motion.div className="absolute z-[90]" style={{ left: fx - capW / 2, top: capTop, width: capW, opacity: show }}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
@@ -490,9 +551,32 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
           </motion.div>
         </AnimatePresence>
       </motion.div>
+      )}
 
-      {/* progress + skip ahead to the full archive */}
+      {/* phones & tablets: one clear control row under the card — big arrows, where you are, how many */}
+      {mobile && (
+        <motion.div
+          className="absolute z-[96] flex -translate-x-1/2 items-center gap-5"
+          style={{ left: fx, top: Math.min(fy + CH / 2 + CAPH + 2, vh - 64), opacity: show }}
+        >
+          <OrbitArrow dir={-1} can={index > 0} enabled={enabled} onGo={() => onIndex(index - 1)} />
+          <span className="flex min-w-[4.5rem] flex-col items-center gap-2" aria-live="polite">
+            <span className="font-mono text-[12px] tabular-nums text-ink-soft">
+              <span className="text-ink">{String(active + 1).padStart(2, "0")}</span> / {String(N).padStart(2, "0")}
+            </span>
+            <span className="flex items-center gap-1.5" aria-hidden>
+              {PROJECTS.map((_, i) => (
+                <span key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === active ? "w-4 bg-blue-glow" : "w-1.5 bg-white/25"}`} />
+              ))}
+            </span>
+          </span>
+          <OrbitArrow dir={1} can={index < N - 1} enabled={enabled} onGo={() => onIndex(index + 1)} />
+        </motion.div>
+      )}
+
+      {/* progress + skip ahead to the full archive (desktop) */}
       {/* (phone & tablet: on the right — the bottom-left corner belongs to the floating "Let's talk") */}
+      {!mobile && (
       <motion.div
         className={`absolute bottom-[max(3.5svh,1rem)] z-[95] flex items-center gap-5 sm:bottom-[max(4svh,1.5rem)] sm:gap-6 lg:bottom-[max(3.5svh,1rem)] lg:gap-5 ${mobile ? "right-6 sm:right-8" : ""}`}
         style={{ opacity: show, left: mobile ? undefined : left }}
@@ -522,6 +606,27 @@ export default function ProjectOrbit({ index, onIndex, drag, show, enabled, mobi
         </button>
         )}
       </motion.div>
+      )}
     </div>
+  );
+}
+
+/** Phones & tablets: a big, plain arrow under the card (48px, clear border) — never on the image. */
+function OrbitArrow({ dir, can, enabled, onGo }: { dir: 1 | -1; can: boolean; enabled: boolean; onGo: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={dir < 0 ? "Previous project" : "Next project"}
+      aria-disabled={!can}
+      onClick={() => can && onGo()}
+      tabIndex={enabled ? 0 : -1}
+      className={`grid size-12 touch-manipulation place-items-center rounded-full border transition-[opacity,border-color,color,transform] duration-300 active:scale-95 ${
+        enabled ? "pointer-events-auto" : ""
+      } ${can ? "border-white/25 bg-panel text-ink" : "border-white/10 bg-panel/60 text-ink opacity-35"}`}
+    >
+      <svg viewBox="0 0 16 16" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden>
+        <path d={dir < 0 ? "M10 3.5 5.5 8l4.5 4.5" : "M6 3.5 10.5 8 6 12.5"} strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
   );
 }

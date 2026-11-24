@@ -330,7 +330,7 @@ export default function Hero() {
 
   return (
     <section ref={section} id="top" className="relative h-[400vh]">
-      <motion.div ref={stage3d} style={{ opacity: leaveOp, scale: leaveScale }} className="sticky top-0 isolate h-[100svh] overflow-hidden">
+      <motion.div ref={stage3d} style={{ opacity: leaveOp, scale: leaveScale }} className="sticky top-0 isolate h-[100svh] overflow-clip">
         {/* ── the water column ── */}
         <div aria-hidden className="absolute inset-0 -z-10 bg-paper">
           <motion.div
