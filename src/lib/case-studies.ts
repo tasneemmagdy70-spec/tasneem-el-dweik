@@ -25,7 +25,8 @@ export type CaseStudy = {
     notes: string[]; // e.g. grid, icons
     components: Figure; // the components sheet (shown cropped)
   };
-  screens: (Figure & { caption: string })[];
+  /** the final screens, exported from the Figma file, grouped by platform */
+  screens: { mobile: Figure[]; web: Figure[]; dashboard: Figure[] };
   impact: { value: string; label: string }[];
 };
 
@@ -76,11 +77,23 @@ export const CASE_STUDIES: CaseStudy[] = [
       notes: ["4-col mobile · 12-col desktop grid", "40+ icons"],
       components: { src: `${IMG}/design-system.webp`, w: 1400, h: 3097, alt: "NOVU components: navigation, buttons, badges, inputs, tabs and progress." },
     },
-    screens: [
-      { src: `${IMG}/mobile-ui.webp`, w: 1400, h: 2126, alt: "NOVU mobile app screens.", caption: "Mobile app" },
-      { src: `${IMG}/web-ui.webp`, w: 1400, h: 1601, alt: "NOVU web app screens.", caption: "Web app" },
-      { src: `${IMG}/dashboard.webp`, w: 1400, h: 1603, alt: "NOVU admin dashboard.", caption: "Admin dashboard" },
-    ],
+    screens: {
+      mobile: [
+        { src: `${IMG}/screens/m-home.webp`, w: 750, h: 1624, alt: "Home: the learner's roadmap, level by level." },
+        { src: `${IMG}/screens/m-mentor.webp`, w: 750, h: 1624, alt: "NOVA, the AI mentor, asking what brings the learner to the app." },
+        { src: `${IMG}/screens/m-quiz.webp`, w: 750, h: 1624, alt: "A timed quiz question with four answers." },
+        { src: `${IMG}/screens/m-streak.webp`, w: 750, h: 1624, alt: "Streak calendar: current and best streak." },
+        { src: `${IMG}/screens/m-practice.webp`, w: 750, h: 1624, alt: "Practice hub: challenges in progress, by module." },
+      ],
+      web: [
+        { src: `${IMG}/screens/w-home.webp`, w: 1440, h: 1024, alt: "NOVU web app: the roadmap with your progress beside it." },
+        { src: `${IMG}/screens/w-lesson.webp`, w: 1440, h: 1024, alt: "NOVU web app: a video lesson with notes and discussion." },
+      ],
+      dashboard: [
+        { src: `${IMG}/screens/d-overview.webp`, w: 1440, h: 1024, alt: "Admin dashboard: users, active learners and popular paths." },
+        { src: `${IMG}/screens/d-paths.webp`, w: 1440, h: 1024, alt: "Admin dashboard: managing career paths and their status." },
+      ],
+    },
     impact: [
       { value: "80+", label: "screens designed" },
       { value: "3", label: "platforms" },
