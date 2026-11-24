@@ -33,14 +33,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-const SECTIONS = [
-  { id: "overview", label: "Overview" },
-  { id: "problem", label: "Problem" },
-  { id: "decisions", label: "Decisions" },
-  { id: "system", label: "Design system" },
-  { id: "screens", label: "Screens" },
-];
-
 export default async function CaseStudyPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const c = caseStudy(slug);
@@ -53,7 +45,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
 
   return (
     <div className="relative min-h-screen bg-paper text-ink">
-      {/* ── top bar: home, back to the work, the theme — and where you are in the story ── */}
+      {/* ── top bar: home, back to the work, the theme — and a hairline of reading progress ── */}
       <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-paper/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
           <Link href="/" className="font-script text-[1.7rem] leading-none text-ink transition-colors hover:text-blue-glow" aria-label="El-Dweik — home">
@@ -66,13 +58,13 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
             <ThemeToggle />
           </div>
         </div>
-        <CaseProgress sections={SECTIONS} />
+        <CaseProgress />
       </header>
 
       <main>
-        {/* ── 1 · Overview: name, one line, three facts, the cover ── */}
-        <section id="overview" className="scroll-mt-28 px-5 pb-20 pt-12 sm:px-8 sm:pt-16 lg:pb-28">
-          <div className="mx-auto max-w-6xl">
+        {/* ── the opening: what it is (left) and the problem it solves (right) — one screen ── */}
+        <section className="px-5 pb-16 pt-12 sm:px-8 sm:pt-16 lg:pb-24 lg:pt-24">
+          <div className="mx-auto grid max-w-6xl gap-12 md:grid-cols-2 md:items-end md:gap-10 lg:gap-16">
             <Reveal>
               <p className="flex items-center gap-3 font-mono text-[11px] uppercase text-blue-glow">
                 <span>
@@ -81,71 +73,51 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
                 <span className="h-px w-8 bg-blue-glow/50" />
                 <span className="text-ink-soft">{c.readTime}</span>
               </p>
-              <h1 className="mt-4 font-serif text-[clamp(3.5rem,10vw,7rem)] leading-[0.92] tracking-[-0.02em]">{c.name}</h1>
-              <p className="mt-5 max-w-2xl text-[1.15rem] leading-snug text-ink-soft sm:text-[1.35rem]">{c.tagline}</p>
+              <h1 className="mt-4 font-serif text-[clamp(3.5rem,9vw,6rem)] leading-[0.92] tracking-[-0.02em]">{c.name}</h1>
+              <p className="mt-5 max-w-md text-[1.1rem] leading-snug text-ink-soft sm:text-[1.2rem]">{c.tagline}</p>
               <ul className="mt-7 flex flex-wrap gap-2">
                 {c.chips.map((x) => (
-                  <li key={x} className="rounded-full border border-white/12 px-4 py-2 text-[0.9rem] text-ink">
+                  <li key={x} className="rounded-full border border-white/12 px-3.5 py-1.5 text-[0.85rem] text-ink">
                     {x}
                   </li>
                 ))}
               </ul>
             </Reveal>
 
-            <Reveal delay={120} className="mt-14">
-              {/* the cover, held in the same folder as on the home page */}
-              <div className="folder relative">
-                <span
-                  aria-hidden
-                  className="folder-fill absolute left-0 flex w-[34%] items-center rounded-t-[16px] px-5 font-mono text-[12px] font-semibold text-sand sm:w-[22%]"
-                  style={{ top: -30, height: 31 }}
-                >
-                  {c.n}
-                </span>
-                <span aria-hidden className="folder-notch absolute left-[34%] size-4 sm:left-[22%]" style={{ top: -16 }} />
-                <div className="folder-fill rounded-[24px] rounded-tl-none p-2.5 sm:p-3">
-                  <Image
-                    src={c.cover.src}
-                    alt={c.cover.alt}
-                    width={c.cover.w}
-                    height={c.cover.h}
-                    sizes="(min-width: 1152px) 1120px, 100vw"
-                    loading="eager"
-                    fetchPriority="high"
-                    className="block h-auto w-full rounded-[16px]"
-                  />
-                </div>
+            <Reveal delay={120}>
+              <div className="rounded-3xl border border-white/10 bg-panel/50 p-7 sm:p-9">
+                <p className="font-mono text-[11px] uppercase text-blue-glow">The problem</p>
+                <p className="mt-4 font-serif text-[clamp(1.6rem,3.2vw,2.25rem)] leading-[1.12] tracking-[-0.01em]">
+                  {c.problem.before}
+                  <span className="italic text-blue-glow">{c.problem.lit}</span>
+                  {c.problem.after}
+                </p>
+                <p className="mt-6 border-l-2 border-sand pl-4 text-[0.98rem] italic leading-relaxed text-ink-soft">“{c.problem.quote}”</p>
               </div>
             </Reveal>
           </div>
         </section>
 
-        {/* ── 2 · The problem — one sentence, the words that matter lit ── */}
-        <Band id="problem" n="01" label="The problem">
-          <Reveal>
-            <p className="max-w-4xl font-serif text-[clamp(2rem,5vw,3.6rem)] leading-[1.08] tracking-[-0.015em]">
-              {c.problem.before}
-              <span className="italic text-blue-glow">{c.problem.lit}</span>
-              {c.problem.after}
-            </p>
-            <p className="mt-8 max-w-2xl border-l-2 border-sand pl-5 text-[1.05rem] italic leading-relaxed text-ink-soft">“{c.problem.quote}”</p>
-          </Reveal>
-        </Band>
-
-        {/* ── 3 · Three decisions — a picture and one line of "why" each (swipe on phones) ── */}
-        <Band id="decisions" n="02" label="Key decisions">
-          <ul className="-mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-2 [scrollbar-width:none] sm:-mx-8 sm:px-8 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-6 lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden">
+        {/* ── key decisions: a picture and one line of "why" each (swipe on phones) ── */}
+        <Band label="Key decisions" n="01">
+          <ul className="-mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-3 [scrollbar-width:none] sm:-mx-8 sm:px-8 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-5 lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden">
             {c.decisions.map((d, i) => (
-              <li key={d.title} className="w-[82%] shrink-0 snap-start sm:w-[58%] lg:w-auto">
-                <Reveal delay={i * 100} className="h-full">
-                  <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-panel/60">
-                    <div className="relative aspect-[4/3] bg-white">
-                      <Image src={d.figure.src} alt={d.figure.alt} fill sizes="(min-width: 1024px) 360px, 80vw" className="object-cover object-top" />
+              <li key={d.title} className="w-[78%] shrink-0 snap-start sm:w-[46%] lg:w-auto">
+                <Reveal delay={i * 90} className="h-full">
+                  <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-panel/50 transition-[transform,border-color,box-shadow] duration-500 ease-out-expo hover:-translate-y-1 hover:border-blue-glow/40 hover:shadow-[0_18px_40px_-24px_rgb(var(--rgb-bright)/0.6)] active:scale-[0.98]">
+                    <div className="relative aspect-[16/10] overflow-hidden bg-white">
+                      <Image
+                        src={d.figure.src}
+                        alt={d.figure.alt}
+                        fill
+                        sizes="(min-width: 1024px) 360px, 78vw"
+                        className="object-cover object-top transition-transform duration-700 ease-out-expo group-hover:scale-[1.04]"
+                      />
                     </div>
-                    <div className="p-6">
+                    <div className="flex flex-1 flex-col p-5">
                       <p className="font-mono text-[11px] uppercase text-blue-glow">0{i + 1}</p>
-                      <h3 className="mt-2 font-serif text-[1.65rem] leading-tight">{d.title}</h3>
-                      <p className="mt-2.5 text-[1rem] leading-relaxed text-ink-soft">{d.why}</p>
+                      <h3 className="mt-1.5 font-serif text-[1.4rem] leading-tight">{d.title}</h3>
+                      <p className="mt-2 text-[0.95rem] leading-relaxed text-ink-soft">{d.why}</p>
                     </div>
                   </article>
                 </Reveal>
@@ -154,66 +126,89 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
           </ul>
         </Band>
 
-        {/* ── 4 · Design system — shown, not described ── */}
-        <Band id="system" n="03" label="Design system">
-          <Reveal>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {c.system.colors.map((col) => (
-                <div key={col.hex} className="overflow-hidden rounded-2xl border border-white/10">
-                  <div className="flex aspect-[4/3] items-end p-4" style={{ background: col.hex, color: col.ink === "dark" ? "#252325" : "#ffffff" }}>
-                    <span className="font-mono text-[12px] font-semibold uppercase">{col.hex}</span>
-                  </div>
-                  <p className="px-4 py-3 text-[0.9rem] text-ink-soft">{col.name}</p>
-                </div>
-              ))}
-            </div>
-          </Reveal>
-          <Reveal delay={100} className="mt-4">
-            <div className="grid gap-4 lg:grid-cols-[1fr_1.3fr]">
-              <div className="flex flex-col justify-between rounded-2xl border border-white/10 p-6 sm:p-8">
-                <div className={plex.className}>
-                  <p className="text-[4.5rem] font-bold leading-none text-[#895CDD]">Aa</p>
-                  <p className="mt-3 text-[1.2rem] font-bold">{c.system.font}</p>
-                  <div className="mt-5 space-y-1.5">
-                    {c.system.sizes.map((s) => (
-                      <p key={s} className="flex items-baseline justify-between gap-4 border-b border-white/[0.07] pb-1.5">
-                        <span style={{ fontSize: Math.min(s, 28) }} className="leading-tight">
-                          {s >= 32 ? "Big" : s >= 24 ? "Normal" : s >= 20 ? "Medium" : "Small"} text
-                        </span>
-                        <span className="font-mono text-[11px] text-ink-soft">{s}px</span>
-                      </p>
-                    ))}
-                  </div>
-                </div>
-                <ul className="mt-6 space-y-1 text-[0.92rem] text-ink-soft">
-                  {c.system.notes.map((x) => (
-                    <li key={x}>· {x}</li>
+        {/* ── design system: grouped like a spec — colour, type, layout & icons, components ── */}
+        <Band label="Design system" n="02">
+          <div className="grid gap-4 lg:grid-cols-12">
+            {/* colour */}
+            <Reveal className="lg:col-span-7">
+              <Spec title="Color">
+                <div className="grid grid-cols-4 gap-2.5 sm:gap-3">
+                  {c.system.colors.map((col) => (
+                    <div key={col.hex}>
+                      <div className="h-24 rounded-xl ring-1 ring-white/10 sm:h-32" style={{ background: col.hex }} />
+                      <p className="mt-2.5 text-[0.82rem] leading-tight text-ink sm:text-[0.88rem]">{col.name.split(" · ")[0]}</p>
+                      <p className="font-mono text-[11px] uppercase text-ink-soft">{col.hex}</p>
+                    </div>
                   ))}
-                </ul>
-              </div>
-              {/* the components, cropped from the system sheet */}
-              <div className="relative min-h-[260px] overflow-hidden rounded-2xl border border-white/10 bg-white">
-                <Image
-                  src={c.system.components.src}
-                  alt={c.system.components.alt}
-                  fill
-                  sizes="(min-width: 1024px) 640px, 100vw"
-                  className="object-cover object-[center_95%]"
-                />
-              </div>
-            </div>
-          </Reveal>
+                </div>
+              </Spec>
+            </Reveal>
+
+            {/* type */}
+            <Reveal delay={90} className="lg:col-span-5">
+              <Spec title="Type">
+                <div className={`flex items-end justify-between gap-4 ${plex.className}`}>
+                  <div>
+                    <p className="text-[4rem] font-bold leading-[0.9] text-[#895CDD]">Aa</p>
+                    <p className="mt-2 text-[1.05rem] font-bold">{c.system.font}</p>
+                  </div>
+                  <ul className="space-y-1 text-right">
+                    {c.system.sizes.map((s) => (
+                      <li key={s} className="leading-none" style={{ fontSize: Math.round(s * 0.62) }}>
+                        {s}
+                        <span className="ml-1 font-mono text-[10px] text-ink-soft">px</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Spec>
+            </Reveal>
+
+            {/* layout & icons */}
+            <Reveal className="lg:col-span-5">
+              <Spec title="Layout & icons">
+                <div className="space-y-4">
+                  <GridSample cols={4} label="Mobile · 4 columns" />
+                  <GridSample cols={12} label="Desktop · 12 columns" />
+                </div>
+                <p className="mt-5 text-[0.92rem] text-ink-soft">
+                  <span className="text-ink">40+</span> custom icons
+                </p>
+              </Spec>
+            </Reveal>
+
+            {/* components */}
+            <Reveal delay={90} className="lg:col-span-7">
+              <Spec title="Components" flush>
+                <div className="relative h-56 overflow-hidden rounded-xl bg-white sm:h-64 lg:h-full lg:min-h-[13rem]">
+                  <Image
+                    src={c.system.components.src}
+                    alt={c.system.components.alt}
+                    fill
+                    sizes="(min-width: 1024px) 640px, 100vw"
+                    className="object-cover object-[center_95%]"
+                  />
+                </div>
+              </Spec>
+            </Reveal>
+          </div>
         </Band>
 
-        {/* ── 5 · Screens — side by side on desktop, a strip to swipe on phones ── */}
-        <Band id="screens" n="04" label="Final screens">
-          <ul className="-mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-2 [scrollbar-width:none] sm:-mx-8 sm:px-8 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-6 lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden">
+        {/* ── final screens: side by side on desktop, a strip to swipe on phones ── */}
+        <Band label="Final screens" n="03">
+          <ul className="-mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-3 [scrollbar-width:none] sm:-mx-8 sm:px-8 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-5 lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden">
             {c.screens.map((s, i) => (
-              <li key={s.src} className="w-[82%] shrink-0 snap-start sm:w-[48%] lg:w-auto">
-                <Reveal delay={i * 100}>
-                  <figure>
+              <li key={s.src} className="w-[78%] shrink-0 snap-start sm:w-[46%] lg:w-auto">
+                <Reveal delay={i * 90}>
+                  <figure className="group">
                     <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-white/10 bg-white">
-                      <Image src={s.src} alt={s.alt} fill sizes="(min-width: 1024px) 460px, 82vw" className="object-cover object-top" />
+                      <Image
+                        src={s.src}
+                        alt={s.alt}
+                        fill
+                        sizes="(min-width: 1024px) 360px, 78vw"
+                        className="object-cover object-top transition-transform duration-700 ease-out-expo group-hover:scale-[1.03]"
+                      />
                     </div>
                     <figcaption className="mt-3 font-mono text-[11px] uppercase text-ink-soft">{s.caption}</figcaption>
                   </figure>
@@ -223,26 +218,26 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
           </ul>
         </Band>
 
-        {/* ── 6 · Impact in numbers, then where to go next ── */}
-        <section className="border-t border-white/[0.06] px-5 py-20 sm:px-8 lg:py-28">
+        {/* ── impact in numbers, then where to go next ── */}
+        <section className="border-t border-white/[0.06] px-5 py-16 sm:px-8 lg:py-24">
           <div className="mx-auto max-w-6xl">
             <Reveal>
-              <dl className="grid grid-cols-2 gap-y-10 lg:grid-cols-4">
+              <dl className="grid grid-cols-2 gap-y-8 lg:grid-cols-4">
                 {c.impact.map((x) => (
                   <div key={x.label}>
                     <dt className="sr-only">{x.label}</dt>
                     <dd>
-                      <span className="block font-serif text-[clamp(3rem,7vw,4.75rem)] leading-none text-ink">{x.value}</span>
-                      <span className="mt-2 block text-[0.95rem] text-ink-soft">{x.label}</span>
+                      <span className="block font-serif text-[clamp(2.6rem,6vw,4rem)] leading-none text-ink">{x.value}</span>
+                      <span className="mt-2 block text-[0.92rem] text-ink-soft">{x.label}</span>
                     </dd>
                   </div>
                 ))}
               </dl>
             </Reveal>
 
-            <Reveal delay={100} className="mt-20">
-              <div className="flex flex-col gap-6 rounded-3xl border border-white/10 bg-panel/60 p-7 sm:p-10 lg:flex-row lg:items-center lg:justify-between">
-                <p className="font-serif text-[clamp(1.7rem,3vw,2.3rem)] leading-tight">The full process is on Behance.</p>
+            <Reveal delay={90} className="mt-16">
+              <div className="flex flex-col gap-5 rounded-3xl border border-white/10 bg-panel/50 p-7 sm:p-9 lg:flex-row lg:items-center lg:justify-between">
+                <p className="font-serif text-[clamp(1.5rem,2.6vw,2rem)] leading-tight">The full process is on Behance.</p>
                 <a href={c.behance} target="_blank" rel="noopener noreferrer" className={BTN_PRIMARY_MD}>
                   Open on Behance
                   <span className={BTN_PRIMARY_MD_ICON}>
@@ -253,7 +248,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
               <nav aria-label="More work" className="mt-4 grid gap-4 sm:grid-cols-2">
                 <Link href="/#best-work" className="rounded-2xl border border-white/10 p-6 transition-colors hover:border-blue-glow/50">
                   <p className="font-mono text-[11px] uppercase text-ink-soft">← Back</p>
-                  <p className="mt-2 text-[1.15rem] font-semibold">All best work</p>
+                  <p className="mt-2 text-[1.1rem] font-semibold">All best work</p>
                 </Link>
                 <a
                   href={nextHref}
@@ -261,7 +256,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
                   className="rounded-2xl border border-white/10 p-6 text-right transition-colors hover:border-blue-glow/50"
                 >
                   <p className="font-mono text-[11px] uppercase text-ink-soft">Next project →</p>
-                  <p className="mt-2 text-[1.15rem] font-semibold">{nextProject.name}</p>
+                  <p className="mt-2 text-[1.1rem] font-semibold">{nextProject.name}</p>
                 </a>
               </nav>
             </Reveal>
@@ -274,18 +269,42 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
   );
 }
 
-/** One section: a small number + label, then its content — no paragraphs of intro. */
-function Band({ id, n, label, children }: { id: string; n: string; label: string; children: React.ReactNode }) {
+/** One section: its title as a small heading (number + label), then the content. */
+function Band({ n, label, children }: { n: string; label: string; children: React.ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-28 border-t border-white/[0.06] px-5 py-20 sm:px-8 lg:py-28">
+    <section className="border-t border-white/[0.06] px-5 py-16 sm:px-8 lg:py-24">
       <div className="mx-auto max-w-6xl">
-        <p className="mb-8 flex items-center gap-3 font-mono text-[11px] uppercase text-blue-glow">
+        <h2 className="mb-8 flex items-center gap-3 font-mono text-[12px] uppercase text-blue-glow lg:mb-10">
           <span>{n}</span>
           <span className="h-px w-8 bg-blue-glow/50" />
-          <span className="text-ink-soft">{label}</span>
-        </p>
+          <span className="text-ink">{label}</span>
+        </h2>
         {children}
       </div>
     </section>
+  );
+}
+
+/** A design-system card: a small sub-heading and its sample. */
+function Spec({ title, children, flush = false }: { title: string; children: React.ReactNode; flush?: boolean }) {
+  return (
+    <div className={`flex h-full flex-col rounded-2xl border border-white/10 bg-panel/50 ${flush ? "p-3 pt-5 sm:p-4 sm:pt-6" : "p-6 sm:p-7"}`}>
+      <p className={`mb-5 font-mono text-[11px] uppercase text-ink-soft ${flush ? "px-3 sm:px-3" : ""}`}>{title}</p>
+      <div className="flex-1">{children}</div>
+    </div>
+  );
+}
+
+/** The grid, drawn: n soft columns. */
+function GridSample({ cols, label }: { cols: number; label: string }) {
+  return (
+    <div>
+      <div className="flex h-10 gap-1 rounded-lg bg-white/[0.03] p-1.5">
+        {Array.from({ length: cols }, (_, i) => (
+          <span key={i} className="flex-1 rounded-sm bg-[#895CDD]/30" />
+        ))}
+      </div>
+      <p className="mt-1.5 text-[0.85rem] text-ink-soft">{label}</p>
+    </div>
   );
 }
