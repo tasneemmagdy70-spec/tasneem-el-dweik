@@ -15,6 +15,12 @@ export type CaseStudy = {
   chips: string[]; // role · platforms · type
   readTime: string;
   cover: Figure;
+  /** the UX work, phase by phase (design thinking), with the artifact that shows it */
+  process: {
+    stats: { value: string; label: string }[];
+    phases: { name: string; methods: string[]; figure: Figure }[];
+    insights: { title: string; body: string }[];
+  };
   /** the problem in one sentence, with the words that matter lit */
   problem: { before: string; lit: string; after: string; quote: string };
   decisions: { title: string; why: string; figure: Figure }[];
@@ -32,6 +38,8 @@ export type CaseStudy = {
     /** web size and dashboard, as one collection each — the first screen leads */
     web: Figure[];
     dashboard: Figure[];
+    /** how many screens each platform has in total (only some are shown) */
+    totals: { mobile: string; web: string; dashboard: string };
   };
   impact: { value: string; label: string }[];
 };
@@ -53,6 +61,46 @@ export const CASE_STUDIES: CaseStudy[] = [
       lit: "lost without a clear path",
       after: ", so they stall and quit.",
       quote: "Online courses are everywhere, but they feel like a lonely desert.",
+    },
+    process: {
+      stats: [
+        { value: "5", label: "platforms analysed" },
+        { value: "8", label: "research patterns" },
+        { value: "9", label: "users in testing" },
+        { value: "3", label: "fixes after testing" },
+      ],
+      phases: [
+        {
+          name: "Empathize",
+          methods: ["Stakeholder interviews", "User research", "Competitive analysis", "SWOT analysis"],
+          figure: { src: `${IMG}/ux/interviews.webp`, w: 1400, h: 2351, alt: "Stakeholder interview questions and the eight insights they produced." },
+        },
+        {
+          name: "Define",
+          methods: ["Affinity map", "Empathy map", "Persona", "User journey", "Problem statement"],
+          figure: { src: `${IMG}/ux/affinity-map.webp`, w: 1400, h: 1196, alt: "Affinity map grouping research notes into eight patterns." },
+        },
+        {
+          name: "Ideate",
+          methods: ["Brainstorming", "Priority matrix", "Value proposition", "Gamification strategy"],
+          figure: { src: `${IMG}/ux/priority-matrix.webp`, w: 1400, h: 1254, alt: "Impact / effort priority matrix for NOVU's features." },
+        },
+        {
+          name: "Prototype",
+          methods: ["Information architecture", "User flows", "Wireframes", "Design system"],
+          figure: { src: `${IMG}/ux/wireframes.webp`, w: 1400, h: 2120, alt: "Mid-fidelity wireframes of the NOVU mobile app." },
+        },
+        {
+          name: "Test",
+          methods: ["Usability testing · 9 users", "Remote, unmoderated (Maze)", "Before → after fixes"],
+          figure: { src: `${IMG}/ux/usability-testing.webp`, w: 1400, h: 2997, alt: "Usability testing plan and three before / after design fixes." },
+        },
+      ],
+      insights: [
+        { title: "Direction is the real problem", body: "Learners aren't stuck for content, but for a clear place to start." },
+        { title: "No feedback, no confidence", body: "Without validation they keep asking if they're on the right track." },
+        { title: "Progress drives motivation", body: "When progress can't be seen, learners drop the course." },
+      ],
     },
     decisions: [
       {
@@ -120,6 +168,10 @@ export const CASE_STUDIES: CaseStudy[] = [
         { src: `${IMG}/screens/w-home.webp`, w: 1440, h: 1024, alt: "Web: the roadmap with your progress beside it." },
         { src: `${IMG}/screens/w-lesson.webp`, w: 1440, h: 1024, alt: "Web: a video lesson." },
         { src: `${IMG}/screens/w-quiz.webp`, w: 1440, h: 1024, alt: "Web: a quiz with instant feedback." },
+        { src: `${IMG}/screens/w-discuss.webp`, w: 1440, h: 1024, alt: "Web: lesson discussion." },
+        { src: `${IMG}/screens/w-notes.webp`, w: 1440, h: 1024, alt: "Web: lesson notes and cheat sheet." },
+        { src: `${IMG}/screens/w-tracks.webp`, w: 1440, h: 1024, alt: "Web: my learning tracks." },
+        { src: `${IMG}/screens/w-project.webp`, w: 1440, h: 1024, alt: "Web: my projects." },
         { src: `${IMG}/screens/w-profile.webp`, w: 1440, h: 1024, alt: "Web: profile, tracks and projects." },
         { src: `${IMG}/screens/w-achieve.webp`, w: 1440, h: 1024, alt: "Web: achievements and badges." },
       ],
@@ -129,7 +181,11 @@ export const CASE_STUDIES: CaseStudy[] = [
         { src: `${IMG}/screens/d-63.webp`, w: 1440, h: 1024, alt: "Dashboard: the roadmap builder." },
         { src: `${IMG}/screens/d-72.webp`, w: 1440, h: 1024, alt: "Dashboard: learners and their progress." },
         { src: `${IMG}/screens/d-73.webp`, w: 1440, h: 1024, alt: "Dashboard: subscriptions and plans." },
+        { src: `${IMG}/screens/d-71.webp`, w: 1440, h: 1024, alt: "Dashboard: rewards and progression." },
+        { src: `${IMG}/screens/d-67.webp`, w: 1440, h: 1024, alt: "Dashboard: AI mentor control." },
+        { src: `${IMG}/screens/d-70.webp`, w: 1440, h: 1024, alt: "Dashboard: practice hub tasks." },
       ],
+      totals: { mobile: "50+", web: "30+", dashboard: "8" },
     },
     impact: [
       { value: "80+", label: "screens designed" },

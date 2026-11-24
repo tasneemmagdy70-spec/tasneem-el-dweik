@@ -12,6 +12,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import CaseProgress from "@/components/case/CaseProgress";
 import Reveal from "@/components/case/Reveal";
 import SnapStrip from "@/components/case/SnapStrip";
+import ArtifactZoom from "@/components/case/ArtifactZoom";
 
 // NOVU's own typeface, for its design-system specimen
 const plex = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "700"], display: "swap" });
@@ -127,8 +128,65 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
           </div>
         </section>
 
+        {/* ── UX process: the research behind the screens — numbers, five phases with their artifacts, what we learned ── */}
+        <Band label="UX process" n="01">
+          <p className="max-w-xl text-[1.05rem] leading-relaxed text-ink-soft">
+            Design thinking, end to end. Every screen further down traces back to one of these steps.
+          </p>
+
+          <Reveal>
+            <dl className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 sm:grid-cols-4">
+              {c.process.stats.map((x) => (
+                <div key={x.label} className="bg-paper p-5 sm:p-6">
+                  <dt className="sr-only">{x.label}</dt>
+                  <dd>
+                    <span className="block font-serif text-[2.4rem] leading-none text-blue-glow">{x.value}</span>
+                    <span className="mt-2 block text-[0.9rem] text-ink-soft">{x.label}</span>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </Reveal>
+
+          <SnapStrip className="mt-6 lg:grid-cols-5 lg:gap-4 lg:pb-0">
+            {c.process.phases.map((p, i) => (
+              <li key={p.name} className="group/card w-[72%] shrink-0 snap-start sm:w-[40%] lg:w-auto">
+                <Reveal delay={i * 70} className="h-full">
+                  <article className={`flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-panel/50 ${LIFT}`}>
+                    <ArtifactZoom figure={p.figure} label={`${p.name} · ${p.methods[0]}`} />
+                    <div className="flex flex-1 flex-col p-5">
+                      <p className="font-mono text-[11px] uppercase text-blue-glow">0{i + 1}</p>
+                      <h3 className="mt-1 font-serif text-[1.35rem] leading-tight">{p.name}</h3>
+                      <ul className="mt-3 space-y-1.5 text-[0.88rem] leading-snug text-ink-soft">
+                        {p.methods.map((m) => (
+                          <li key={m} className="flex gap-2">
+                            <span className="mt-[0.45em] size-1 shrink-0 rounded-full bg-blue-glow/70" aria-hidden />
+                            {m}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </article>
+                </Reveal>
+              </li>
+            ))}
+          </SnapStrip>
+
+          <Sub title="What research told us" className="mt-12 lg:mt-16" />
+          <div className="grid gap-4 md:grid-cols-3">
+            {c.process.insights.map((x, i) => (
+              <Reveal key={x.title} delay={i * 80}>
+                <div className="h-full rounded-2xl border border-white/10 p-6">
+                  <p className="font-serif text-[1.25rem] leading-tight">{x.title}</p>
+                  <p className="mt-2 text-[0.93rem] leading-relaxed text-ink-soft">{x.body}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </Band>
+
         {/* ── key decisions: a picture and one line of "why" each (swipe on phones) ── */}
-        <Band label="Key decisions" n="01">
+        <Band label="Key decisions" n="02">
           <SnapStrip className="lg:grid-cols-3 lg:gap-5 lg:pb-0">
             {c.decisions.map((d, i) => (
               <li key={d.title} className={SWIPE_ITEM}>
@@ -156,7 +214,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         </Band>
 
         {/* ── design system: grouped like a spec — colour, type, grid & icons, components ── */}
-        <Band label="Design system" n="02">
+        <Band label="Design system" n="03">
           <div className="grid gap-4 md:grid-cols-12">
             {/* colour */}
             <Reveal className="md:col-span-7">
@@ -231,8 +289,8 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
         </Band>
 
         {/* ── final screens: phones in a row, then the web app and the dashboard in browser frames ── */}
-        <Band label="Final screens" n="03">
-          <Sub title="Mobile" count={c.screens.mobile.reduce((n, f) => n + f.shots.length, 0)} />
+        <Band label="Final screens" n="04">
+          <Sub title="Mobile" note={`${c.screens.mobile.reduce((n, f) => n + f.shots.length, 0)} of ${c.screens.totals.mobile} screens`} />
           <div className="space-y-4">
             {c.screens.mobile.map((flow, f) => (
               <Reveal key={flow.title}>
@@ -258,12 +316,12 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
             ))}
           </div>
 
-          <Sub title="Web" count={c.screens.web.length} className="mt-14 lg:mt-20" />
+          <Sub title="Web" note={`${c.screens.web.length} of ${c.screens.totals.web} screens`} className="mt-14 lg:mt-20" />
           <Reveal>
             <Collection shots={c.screens.web} />
           </Reveal>
 
-          <Sub title="Admin dashboard" count={c.screens.dashboard.length} className="mt-14 lg:mt-20" />
+          <Sub title="Admin dashboard" note={c.screens.dashboard.length >= Number(c.screens.totals.dashboard) ? `all ${c.screens.totals.dashboard} screens` : `${c.screens.dashboard.length} of ${c.screens.totals.dashboard} screens`} className="mt-14 lg:mt-20" />
           <Reveal>
             <Collection shots={c.screens.dashboard} mirror />
           </Reveal>
@@ -327,12 +385,12 @@ function Band({ n, label, children }: { n: string; label: string; children: Reac
   );
 }
 
-/** A small label above a group of screens, with how many there are. */
-function Sub({ title, count, className = "" }: { title: string; count: number; className?: string }) {
+/** A small label above a group, with an optional note (e.g. how many screens are shown). */
+function Sub({ title, note, className = "" }: { title: string; note?: string; className?: string }) {
   return (
     <h3 className={`mb-5 flex items-baseline gap-3 text-[1.05rem] font-semibold text-ink ${className}`}>
       {title}
-      <span className="font-mono text-[11px] font-normal uppercase text-ink-soft">{count} screens</span>
+      {note && <span className="font-mono text-[11px] font-normal uppercase text-ink-soft">{note}</span>}
     </h3>
   );
 }
@@ -382,12 +440,23 @@ function Phone({ figure }: { figure: Figure }) {
  */
 function Collection({ shots, mirror = false }: { shots: Figure[]; mirror?: boolean }) {
   const [lead, ...rest] = shots;
+  const beside = rest.slice(0, 4); // the 2×2 next to the lead
+  const more = rest.slice(4); // the rest, one row underneath
   return (
-    <div className="grid grid-flow-dense grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-      <Browser figure={lead} className={`col-span-2 lg:row-span-2 ${mirror ? "lg:col-start-3" : ""}`} large />
-      {rest.map((s) => (
-        <Browser key={s.src} figure={s} />
-      ))}
+    <div className="space-y-3 sm:space-y-4">
+      <div className="grid grid-flow-dense grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <Browser figure={lead} className={`col-span-2 lg:row-span-2 ${mirror ? "lg:col-start-3" : ""}`} large />
+        {beside.map((s) => (
+          <Browser key={s.src} figure={s} />
+        ))}
+      </div>
+      {more.length > 0 && (
+        <div className={`grid grid-cols-2 gap-3 sm:gap-4 ${more.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+          {more.map((s, i) => (
+            <Browser key={s.src} figure={s} className={more.length % 2 && i === more.length - 1 ? "max-lg:col-span-2" : ""} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
