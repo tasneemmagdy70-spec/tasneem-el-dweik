@@ -8,7 +8,7 @@ import type { Figure } from "@/lib/case-studies";
  * A research artifact shown as a cropped thumbnail; tap it to open the whole sheet
  * (affinity map, wireframes…) in a dialog you can scroll through, then close.
  */
-export default function ArtifactZoom({ figure, label }: { figure: Figure; label: string }) {
+export default function ArtifactZoom({ figure, label, accent = "#895CDD" }: { figure: Figure; label: string; accent?: string }) {
   const ref = useRef<HTMLDialogElement>(null);
   return (
     <>
@@ -25,7 +25,7 @@ export default function ArtifactZoom({ figure, label }: { figure: Figure; label:
           sizes="(min-width: 1024px) 220px, 80vw"
           className="object-cover object-top transition-transform duration-700 ease-out-expo group-hover/zoom:scale-[1.05]"
         />
-        <span className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1.5 rounded-full bg-[#895CDD] px-2.5 py-1 font-mono text-[10px] uppercase text-[#fff] shadow-[0_4px_12px_-4px_rgba(137,92,221,0.7)] transition-[background-color,transform] group-hover/zoom:scale-105 group-hover/zoom:bg-[#7446c9]">
+        <span className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[10px] uppercase text-[#fff] shadow-[0_4px_12px_-4px_rgba(0,0,0,0.35)] transition-[filter,transform] group-hover/zoom:scale-105 group-hover/zoom:brightness-90" style={{ background: accent }}>
           <svg viewBox="0 0 16 16" className="size-3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
             <circle cx="7" cy="7" r="4.5" />
             <path d="m10.5 10.5 3 3M7 5v4M5 7h4" />

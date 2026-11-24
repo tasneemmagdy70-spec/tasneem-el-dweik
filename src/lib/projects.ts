@@ -34,6 +34,7 @@ export const FEATURED: Project[] = [
     meta: "Mobile · UX case study",
     hue: 28,
     href: `${BE}/245083381/Sanaa-Handcrafts-Booking-UXUI-Case-Study`,
+    caseStudy: "/work/sanaa",
     image: "/images/projects/sanaa.webp",
   },
   {

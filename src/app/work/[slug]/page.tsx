@@ -4,7 +4,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { IBM_Plex_Sans } from "next/font/google";
 import { CASE_STUDIES, caseStudy, type Figure } from "@/lib/case-studies";
-import { NOVU_ICONS } from "@/lib/novu-icons";
 import { FEATURED } from "@/lib/projects";
 import { BTN_PRIMARY_MD, BTN_PRIMARY_MD_ICON } from "@/lib/ui";
 import { ArrowUpRight } from "@/components/icons";
@@ -14,8 +13,9 @@ import Reveal from "@/components/case/Reveal";
 import SnapStrip from "@/components/case/SnapStrip";
 import ArtifactZoom from "@/components/case/ArtifactZoom";
 
-// NOVU's own typeface, for its design-system specimen
+// each project's own typeface, for its design-system specimen (Inter is the site's own font)
 const plex = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "700"], display: "swap" });
+const FONT_CLASS: Record<string, string> = { "IBM Plex Sans": plex.className, Inter: "font-sans" };
 
 // every case study is prerendered (generateStaticParams); an unknown slug simply 404s,
 // so the route may wait for its params rather than stream a placeholder
@@ -56,6 +56,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
   const prevProject = FEATURED[(at - 1 + FEATURED.length) % FEATURED.length];
   const prevHref = prevProject.caseStudy ?? prevProject.href;
   const prevExternal = !prevProject.caseStudy;
+  const accent = c.system.colors[0].hex; // the project's brand colour, for its own specimens
 
   return (
     <div className="relative min-h-screen bg-paper text-ink">
@@ -144,12 +145,12 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
             </dl>
           </Reveal>
 
-          <SnapStrip className="mt-6 lg:grid-cols-5 lg:gap-4 lg:pb-0">
+          <SnapStrip className={`mt-6 lg:gap-4 lg:pb-0 ${c.process.phases.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-5"}`}>
             {c.process.phases.map((p, i) => (
               <li key={p.name} className="group/card w-[72%] shrink-0 snap-start sm:w-[40%] lg:w-auto">
                 <Reveal delay={i * 70} className="h-full">
                   <article className={`flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-panel/50 ${LIFT}`}>
-                    <ArtifactZoom figure={p.figure} label={`${p.name} · ${p.methods[0]}`} />
+                    <ArtifactZoom figure={p.figure} label={`${p.name} · ${p.methods[0]}`} accent={accent} />
                     <div className="flex flex-1 flex-col p-5">
                       <p className="font-mono text-[11px] uppercase text-blue-glow">0{i + 1}</p>
                       <h3 className="mt-1 font-serif text-[1.35rem] leading-tight">{p.name}</h3>
@@ -209,17 +210,20 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
           </SnapStrip>
         </Band>
 
-        {/* ── design system: grouped like a spec — colour, type, grid & icons, components ── */}
+        {/* ── design system: grouped like a spec — colour and type, then grid & icons, components or the brand ── */}
         <Band label="Design system" n="03">
           <div className="grid gap-4 md:grid-cols-12">
             {/* colour */}
             <Reveal className="md:col-span-7">
               <Spec title="Color">
-                <div className="grid grid-cols-4 gap-2.5 sm:gap-3">
+                <div
+                  className="grid grid-cols-[repeat(var(--mcols),minmax(0,1fr))] gap-x-2.5 gap-y-5 sm:grid-cols-[repeat(var(--cols),minmax(0,1fr))] sm:gap-3"
+                  style={{ "--cols": c.system.colors.length, "--mcols": c.system.colors.length > 4 ? 3 : c.system.colors.length } as React.CSSProperties}
+                >
                   {c.system.colors.map((col) => (
                     <div key={col.hex}>
                       <div className="h-24 rounded-xl ring-1 ring-white/10 sm:h-32" style={{ background: col.hex }} />
-                      <p className="mt-2.5 text-[0.82rem] leading-tight text-ink sm:text-[0.88rem]">{col.name.split(" · ")[0]}</p>
+                      <p className="mt-2.5 text-[0.82rem] leading-tight text-ink sm:text-[0.88rem]">{col.name}</p>
                       <p className="font-mono text-[11px] uppercase text-ink-soft">{col.hex}</p>
                     </div>
                   ))}
@@ -227,19 +231,26 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
               </Spec>
             </Reveal>
 
-            {/* type */}
+            {/* type: the scale, or the weights in use */}
             <Reveal delay={90} className="md:col-span-5">
               <Spec title="Type">
-                <div className={`flex items-end justify-between gap-4 ${plex.className}`}>
+                <div className={`flex items-end justify-between gap-4 ${FONT_CLASS[c.system.font] ?? ""}`}>
                   <div>
-                    <p className="text-[4rem] font-bold leading-[0.9] text-[#895CDD]">Aa</p>
+                    <p className="text-[4rem] font-bold leading-[0.9]" style={{ color: accent }}>
+                      Aa
+                    </p>
                     <p className="mt-2 text-[1.05rem] font-bold">{c.system.font}</p>
                   </div>
                   <ul className="space-y-1 text-right">
-                    {c.system.sizes.map((s) => (
+                    {c.system.sizes?.map((s) => (
                       <li key={s} className="leading-none" style={{ fontSize: Math.round(s * 0.62) }}>
                         {s}
                         <span className="ml-1 font-mono text-[10px] text-ink-soft">px</span>
+                      </li>
+                    ))}
+                    {c.system.weights?.map((w) => (
+                      <li key={w.name} className="text-[0.95rem] leading-tight" style={{ fontWeight: w.value }}>
+                        {w.name}
                       </li>
                     ))}
                   </ul>
@@ -247,46 +258,59 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
               </Spec>
             </Reveal>
 
-            {/* grid & icons — the grid drawn over real NOVU screens, and its own icons */}
-            <Reveal className="md:col-span-5">
-              <Spec title="Grid & icons">
-                <div className="flex items-end gap-3">
-                  <GridOnScreen figure={c.screens.mobile[1].shots[3]} cols={4} className="w-[26%]" label="4 col" />
-                  <GridOnScreen figure={c.screens.web[1]} cols={12} className="flex-1" label="12 col" />
-                </div>
-                <ul className="mt-6 grid grid-cols-8 gap-1.5" aria-label="Some of NOVU's 40+ icons">
-                  {NOVU_ICONS.map((ic) => (
-                    <li key={ic.name} className="grid aspect-square place-items-center rounded-lg bg-white/[0.04] text-[#a98be8]">
-                      <svg viewBox={ic.viewBox} className="size-[55%]" aria-hidden dangerouslySetInnerHTML={{ __html: ic.body }} />
-                    </li>
-                  ))}
-                </ul>
-                <p className="mt-3 text-[0.88rem] text-ink-soft">
-                  <span className="text-ink">40+</span> icons in one stroke style
-                </p>
-              </Spec>
-            </Reveal>
+            {/* grid & icons — the grid drawn over real screens, and the project's own icons */}
+            {(c.system.grid || c.system.icons) && (
+              <Reveal className="md:col-span-5">
+                <Spec title="Grid & icons">
+                  {c.system.grid && (
+                    <div className="flex items-end gap-3">
+                      <GridOnScreen figure={c.system.grid.mobile} cols={4} className="w-[26%]" label="4 col" accent={accent} />
+                      <GridOnScreen figure={c.system.grid.desktop} cols={12} className="flex-1" label="12 col" accent={accent} />
+                    </div>
+                  )}
+                  {c.system.icons && (
+                    <>
+                      <ul className="mt-6 grid grid-cols-8 gap-1.5" aria-label={`Some of ${c.name}'s icons`}>
+                        {c.system.icons.set.map((ic) => (
+                          <li key={ic.name} className="grid aspect-square place-items-center rounded-lg bg-white/[0.04]" style={{ color: accent }}>
+                            <svg viewBox={ic.viewBox} className="size-[55%]" aria-hidden dangerouslySetInnerHTML={{ __html: ic.body }} />
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-3 text-[0.88rem] text-ink-soft">{c.system.icons.note}</p>
+                    </>
+                  )}
+                </Spec>
+              </Reveal>
+            )}
 
             {/* components */}
-            <Reveal delay={90} className="md:col-span-7">
-              <Spec title="Components" flush>
-                <div className="relative h-56 overflow-hidden rounded-xl bg-white sm:h-72 md:h-full md:min-h-[13rem]">
-                  <Image
-                    src={c.system.components.src}
-                    alt={c.system.components.alt}
-                    fill
-                    sizes="(min-width: 1024px) 640px, 100vw"
-                    className="object-cover object-[center_95%]"
-                  />
-                </div>
-              </Spec>
-            </Reveal>
+            {c.system.components && (
+              <Reveal delay={90} className="md:col-span-7">
+                <Spec title="Components" flush>
+                  <div className="relative h-56 overflow-hidden rounded-xl bg-white sm:h-72 md:h-full md:min-h-[13rem]">
+                    <Image src={c.system.components.src} alt={c.system.components.alt} fill sizes="(min-width: 1024px) 640px, 100vw" className="object-cover object-[center_95%]" />
+                  </div>
+                </Spec>
+              </Reveal>
+            )}
+
+            {/* brand — the logo and identity, wide */}
+            {c.system.brand && (
+              <Reveal className="md:col-span-12">
+                <Spec title="Brand" flush>
+                  <div className="relative h-48 overflow-hidden rounded-xl bg-white sm:h-64 lg:h-72">
+                    <Image src={c.system.brand.src} alt={c.system.brand.alt} fill sizes="(min-width: 1024px) 1100px, 100vw" className="object-cover object-center" />
+                  </div>
+                </Spec>
+              </Reveal>
+            )}
           </div>
         </Band>
 
         {/* ── final screens: phones in a row, then the web app and the dashboard in browser frames ── */}
         <Band label="Final screens" n="04">
-          <Sub title="Mobile" note={`${c.screens.mobile.reduce((n, f) => n + f.shots.length, 0)} of ${c.screens.totals.mobile} screens`} />
+          <Sub title="Mobile" note={screensNote(c.screens.mobile.reduce((n, f) => n + f.shots.length, 0), c.screens.totals.mobile)} />
           <div className="space-y-4">
             {c.screens.mobile.map((flow, f) => (
               <Reveal key={flow.title}>
@@ -312,15 +336,23 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ slug
             ))}
           </div>
 
-          <Sub title="Web" note={`${c.screens.web.length} of ${c.screens.totals.web} screens`} className="mt-14 lg:mt-20" />
-          <Reveal>
-            <Collection shots={c.screens.web} />
-          </Reveal>
+          {c.screens.web && (
+            <>
+              <Sub title="Web" note={screensNote(c.screens.web.length, c.screens.totals.web)} className="mt-14 lg:mt-20" />
+              <Reveal>
+                <Collection shots={c.screens.web} />
+              </Reveal>
+            </>
+          )}
 
-          <Sub title="Admin dashboard" note={c.screens.dashboard.length >= Number(c.screens.totals.dashboard) ? `all ${c.screens.totals.dashboard} screens` : `${c.screens.dashboard.length} of ${c.screens.totals.dashboard} screens`} className="mt-14 lg:mt-20" />
-          <Reveal>
-            <Collection shots={c.screens.dashboard} mirror />
-          </Reveal>
+          {c.screens.dashboard && (
+            <>
+              <Sub title="Admin dashboard" note={screensNote(c.screens.dashboard.length, c.screens.totals.dashboard)} className="mt-14 lg:mt-20" />
+              <Reveal>
+                <Collection shots={c.screens.dashboard} mirror />
+              </Reveal>
+            </>
+          )}
         </Band>
 
         {/* ── impact in numbers, then where to go next ── */}
@@ -381,6 +413,12 @@ function Band({ n, label, children }: { n: string; label: string; children: Reac
   );
 }
 
+/** "12 of 40+ screens", or "all 8 screens" when every one is shown. */
+function screensNote(shown: number, total?: string) {
+  if (!total) return `${shown} screens`;
+  return shown >= Number(total) ? `all ${total} screens` : `${shown} of ${total} screens`;
+}
+
 /** A small label above a group, with an optional note (e.g. how many screens are shown). */
 function Sub({ title, note, className = "" }: { title: string; note?: string; className?: string }) {
   return (
@@ -402,14 +440,14 @@ function Spec({ title, children, flush = false }: { title: string; children: Rea
 }
 
 /** A real screen with its column grid laid over it. */
-function GridOnScreen({ figure, cols, label, className = "" }: { figure: Figure; cols: number; label: string; className?: string }) {
+function GridOnScreen({ figure, cols, label, accent, className = "" }: { figure: Figure; cols: number; label: string; accent: string; className?: string }) {
   return (
     <figure className={className}>
       <div className="relative overflow-hidden rounded-md bg-white ring-1 ring-white/10" style={{ aspectRatio: figure.w / figure.h }}>
         <Image src={figure.src} alt="" fill sizes="240px" className="object-cover object-top opacity-80" />
         <div className="absolute inset-0 flex gap-[4%] px-[5%]" aria-hidden>
           {Array.from({ length: cols }, (_, i) => (
-            <span key={i} className="flex-1 bg-[#895CDD]/25" />
+            <span key={i} className="flex-1 opacity-25" style={{ background: accent }} />
           ))}
         </div>
       </div>
