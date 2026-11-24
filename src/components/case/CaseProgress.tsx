@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * The case study's own "layer bar": where you are in the story (Overview → What's next),
@@ -9,6 +9,14 @@ import { useEffect, useState } from "react";
 export default function CaseProgress({ sections }: { sections: { id: string; label: string }[] }) {
   const [active, setActive] = useState(0);
   const [progress, setProgress] = useState(0);
+  const strip = useRef<HTMLDivElement>(null);
+  // phones: the strip slides so the section you're in is always in view
+  useEffect(() => {
+    const el = strip.current?.children[active] as HTMLElement | undefined;
+    const box = strip.current;
+    if (!el || !box) return;
+    box.scrollTo({ left: Math.max(0, el.offsetLeft - 16), behavior: "smooth" });
+  }, [active]);
 
   useEffect(() => {
     let raf = 0;
@@ -39,7 +47,7 @@ export default function CaseProgress({ sections }: { sections: { id: string; lab
 
   return (
     <nav aria-label="Case study sections" className="relative">
-      <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-3 [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden">
+      <div ref={strip} className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-3 [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden">
         {sections.map((s, i) => (
           <a
             key={s.id}
